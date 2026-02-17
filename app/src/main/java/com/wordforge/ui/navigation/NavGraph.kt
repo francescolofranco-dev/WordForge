@@ -22,7 +22,6 @@ fun NavGraph(
         navController = navController,
         startDestination = Screen.WordList.route
     ) {
-        // Home screen — list of all words
         composable(Screen.WordList.route) {
             WordListScreen(
                 viewModel = viewModel,
@@ -35,7 +34,6 @@ fun NavGraph(
             )
         }
 
-        // Add a new word
         composable(Screen.AddWord.route) {
             AddWordScreen(
                 onAddWord = { word, meaning ->
@@ -47,7 +45,6 @@ fun NavGraph(
             )
         }
 
-        // Quiz — opened from notification or from word list
         composable(
             route = Screen.Quiz.route,
             arguments = listOf(navArgument("wordId") { type = NavType.StringType })
@@ -62,7 +59,6 @@ fun NavGraph(
             )
         }
 
-        // Word detail — tap a word in the list
         composable(
             route = Screen.WordDetail.route,
             arguments = listOf(navArgument("wordId") { type = NavType.StringType })
@@ -73,6 +69,9 @@ fun NavGraph(
                 viewModel = viewModel,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToQuiz = { id ->
+                    navController.navigate(Screen.Quiz.createRoute(id))
                 }
             )
         }

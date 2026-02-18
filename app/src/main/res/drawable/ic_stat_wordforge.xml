@@ -5,7 +5,39 @@
     android:viewportWidth="24"
     android:viewportHeight="24"
     android:tint="#FFFFFF">
+
+    <!-- W -->
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M4,5 L7,5 L9.5,14 L12,5 L14.5,14 L17,5 L20,5 L16,19 L13.5,19 L12,13 L10.5,19 L8,19 Z" />
+        android:pathData="
+            M2,5
+            L4.5,6
+            L6.5,14
+            L8.5,6
+            L10.5,14
+            L12.5,6
+            L15,5
+            L12,18
+            L9.8,19
+            L8.5,13
+            L7.2,19
+            L5,18
+            Z" />
+
+    <!-- F -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="
+            M15.5,5
+            L22,5
+            L22,8
+            L17.8,7
+            L17.8,11
+            L21.5,11
+            L21.5,14
+            L17.8,13
+            L17.8,19
+            L15.5,19
+            Z" />
+
 </vector>

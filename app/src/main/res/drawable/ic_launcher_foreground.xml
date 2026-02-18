@@ -1,23 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
 
-    <!-- Stylized "W" letterform, centered in adaptive icon safe zone (24–84) -->
+    <!-- W -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M33,34 L41,34 L48,58 L54,40 L60,58 L67,34 L75,34 L63,74 L57,74 L54,64 L51,74 L45,74 Z" />
+        android:fillColor="@android:color/white"
+        android:pathData="
+            M2,5
+            L4.5,6
+            L6.5,14
+            L8.5,6
+            L10.5,14
+            L12.5,6
+            L15,5
+            L12,18
+            L9.8,19
+            L8.5,13
+            L7.2,19
+            L5,18
+            Z" />
 
-    <!-- Small spark/flame above the W to represent "forge" -->
+    <!-- F -->
     <path
-        android:fillColor="#FFCC80"
-        android:pathData="M54,22 Q56,26 54,30 Q52,26 54,22 Z" />
-    <path
-        android:fillColor="#FFCC80"
-        android:pathData="M49,25 Q51,28 49,31 Q47,28 49,25 Z" />
-    <path
-        android:fillColor="#FFCC80"
-        android:pathData="M59,25 Q61,28 59,31 Q57,28 59,25 Z" />
+        android:fillColor="@android:color/white"
+        android:pathData="
+            M15.5,5
+            L22,5
+            L22,8
+            L17.8,7
+            L17.8,11
+            L21.5,11
+            L21.5,14
+            L17.8,13
+            L17.8,19
+            L15.5,19
+            Z" />
+
 </vector>

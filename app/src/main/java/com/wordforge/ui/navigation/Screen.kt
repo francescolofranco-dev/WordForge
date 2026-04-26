@@ -3,6 +3,7 @@ package com.wordforge.ui.navigation
 sealed class Screen(val route: String) {
     object WordList : Screen("word_list")
     object AddWord : Screen("add_word")
+    object HowItWorks : Screen("how_it_works")
     object Quiz : Screen("quiz/{wordId}") {
         fun createRoute(wordId: String) = "quiz/$wordId"
     }

@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.wordforge.ui.screens.AddWordScreen
+import com.wordforge.ui.screens.HowItWorksScreen
 import com.wordforge.ui.screens.QuizScreen
 import com.wordforge.ui.screens.WordDetailScreen
 import com.wordforge.ui.screens.WordListScreen
@@ -30,7 +31,16 @@ fun NavGraph(
                 },
                 onNavigateToDetail = { wordId ->
                     navController.navigate(Screen.WordDetail.createRoute(wordId))
+                },
+                onNavigateToHowItWorks = {
+                    navController.navigate(Screen.HowItWorks.route)
                 }
+            )
+        }
+
+        composable(Screen.HowItWorks.route) {
+            HowItWorksScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

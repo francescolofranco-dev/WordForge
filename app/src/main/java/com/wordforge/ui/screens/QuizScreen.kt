@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.wordforge.data.Word
 import com.wordforge.ui.theme.Success
 import com.wordforge.ui.theme.SuccessContainer
@@ -76,8 +77,8 @@ fun QuizScreen(
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -134,12 +135,17 @@ fun QuizScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // The word
+                        // The word — hero centerpiece
                         Text(
                             text = currentWord.word,
-                            style = MaterialTheme.typography.displayLarge,
+                            style = MaterialTheme.typography.displayLarge.copy(
+                                fontSize = 56.sp,
+                                lineHeight = 64.sp,
+                                letterSpacing = (-1).sp
+                            ),
+                            fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onBackground,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.fillMaxWidth()
                         )
 

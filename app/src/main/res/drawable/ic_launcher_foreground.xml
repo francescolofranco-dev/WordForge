@@ -1,43 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24"
-    android:tint="#FFFFFF">
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
 
-    <!-- W -->
+    <!--
+      Adaptive icon foreground. Drawing surface is 108x108 dp, but only the
+      center 66dp circle is guaranteed visible across launcher mask shapes.
+      The "W" mark below sits well within that safe zone (x:30–78, y:36–76).
+    -->
     <path
-        android:fillColor="@android:color/white"
-        android:pathData="
-            M2,5
-            L4.5,6
-            L6.5,14
-            L8.5,6
-            L10.5,14
-            L12.5,6
-            L15,5
-            L12,18
-            L9.8,19
-            L8.5,13
-            L7.2,19
-            L5,18
-            Z" />
-
-    <!-- F -->
-    <path
-        android:fillColor="@android:color/white"
-        android:pathData="
-            M15.5,5
-            L22,5
-            L22,8
-            L17.8,7
-            L17.8,11
-            L21.5,11
-            L21.5,14
-            L17.8,13
-            L17.8,19
-            L15.5,19
-            Z" />
-
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="10"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M30,36 L42,76 L54,52 L66,76 L78,36" />
 </vector>

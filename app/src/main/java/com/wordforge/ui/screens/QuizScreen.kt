@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -112,6 +116,17 @@ fun QuizScreen(
                     val currentWord = word!!
                     val tierColor = TierColors.getOrElse(currentWord.currentTier) { TierColors.last() }
 
+                    var heroVisible by remember { mutableStateOf(false) }
+                    LaunchedEffect(currentWord.id) { heroVisible = true }
+                    val heroScale by animateFloatAsState(
+                        targetValue = if (heroVisible) 1f else 0.85f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        label = "heroScale"
+                    )
+
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -135,7 +150,7 @@ fun QuizScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // The word — hero centerpiece
+                        // The word — hero centerpiece, scales in with a soft bounce
                         Text(
                             text = currentWord.word,
                             style = MaterialTheme.typography.displayLarge.copy(
@@ -146,7 +161,9 @@ fun QuizScreen(
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .scale(heroScale)
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
@@ -223,7 +240,7 @@ fun QuizScreen(
                                     )
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
+                                        imageVector = Icons.Rounded.Close,
                                         contentDescription = null,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -248,7 +265,7 @@ fun QuizScreen(
                                     )
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Check,
+                                        imageVector = Icons.Rounded.Check,
                                         contentDescription = null,
                                         modifier = Modifier.size(20.dp)
                                     )
@@ -264,7 +281,7 @@ fun QuizScreen(
                                 "Nice! Moving to the next tier."
                             else
                                 "No worries — you'll see this one again sooner."
-                            val feedbackIcon = if (wasCorrect == true) Icons.Default.Check else Icons.Default.Close
+                            val feedbackIcon = if (wasCorrect == true) Icons.Rounded.Check else Icons.Rounded.Close
 
                             Card(
                                 modifier = Modifier.fillMaxWidth(),

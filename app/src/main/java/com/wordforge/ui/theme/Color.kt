@@ -83,7 +83,8 @@ val Success = Color(0xFF2E7D32)
 val SuccessContainer = Color(0xFFC8E6C9)
 val OnSuccess = Color(0xFFFFFFFF)
 
-// Tier badge colors — warm gradient from red (new) to green (mastered)
+// Tier badge colors — warm gradient from red (new) to green (mastered).
+// 9 entries to match SpacedRepetition.MAX_TIER (0..8).
 val TierColors = listOf(
     Color(0xFFE53935),  // Tier 0 — just added
     Color(0xFFF4511E),  // Tier 1
@@ -91,6 +92,7 @@ val TierColors = listOf(
     Color(0xFFFFC107),  // Tier 3
     Color(0xFFCDDC39),  // Tier 4
     Color(0xFF8BC34A),  // Tier 5
-    Color(0xFF4CAF50),  // Tier 6
-    Color(0xFF2E7D32),  // Tier 7 — mastered
+    Color(0xFF66BB6A),  // Tier 6
+    Color(0xFF4CAF50),  // Tier 7
+    Color(0xFF2E7D32),  // Tier 8 — mastered
 )

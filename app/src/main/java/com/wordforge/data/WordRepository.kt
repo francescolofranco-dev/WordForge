@@ -39,7 +39,7 @@ class WordRepository(private val wordDao: WordDao) {
             word = word,
             meaning = meaning,
             createdAt = currentTime,
-            nextPromptAt = currentTime + SpacedRepetition.getIntervalMs(0)
+            nextPromptAt = currentTime + SpacedRepetition.nextDelayMs(0)
         )
         wordDao.insert(newWord)
         return newWord
@@ -54,7 +54,7 @@ class WordRepository(private val wordDao: WordDao) {
         val currentTime = System.currentTimeMillis()
         val updatedWord = word.copy(
             currentTier = newTier,
-            nextPromptAt = currentTime + SpacedRepetition.getIntervalMs(newTier),
+            nextPromptAt = currentTime + SpacedRepetition.nextDelayMs(newTier),
             totalCorrect = word.totalCorrect + 1,
             lastAnsweredAt = currentTime
         )
@@ -71,7 +71,7 @@ class WordRepository(private val wordDao: WordDao) {
         val currentTime = System.currentTimeMillis()
         val updatedWord = word.copy(
             currentTier = newTier,
-            nextPromptAt = currentTime + SpacedRepetition.getIntervalMs(newTier),
+            nextPromptAt = currentTime + SpacedRepetition.nextDelayMs(newTier),
             totalIncorrect = word.totalIncorrect + 1,
             lastAnsweredAt = currentTime
         )

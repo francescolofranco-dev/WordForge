@@ -16,8 +16,8 @@ android {
         applicationId = "com.wordforge"
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

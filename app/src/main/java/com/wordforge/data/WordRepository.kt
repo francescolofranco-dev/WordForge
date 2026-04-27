@@ -29,6 +29,14 @@ class WordRepository(private val wordDao: WordDao) {
         return wordDao.getAllForNextPrompting(currentTime)
     }
 
+    suspend fun getAllOnce(): List<Word> {
+        return wordDao.getAllOnce()
+    }
+
+    suspend fun upsertAll(words: List<Word>) {
+        wordDao.upsertAll(words)
+    }
+
     /**
      * Creates a new word and inserts it into the database.
      * Returns the created Word so the caller can schedule a notification.

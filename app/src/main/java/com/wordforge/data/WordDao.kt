@@ -3,6 +3,7 @@ package com.wordforge.data
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
@@ -29,4 +30,10 @@ interface WordDao {
 
     @Query("SELECT * FROM word WHERE nextPromptAt <= :currentTime")
     suspend fun getAllForNextPrompting(currentTime: Long): List<Word>
+
+    @Query("SELECT * FROM word")
+    suspend fun getAllOnce(): List<Word>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(words: List<Word>)
 }

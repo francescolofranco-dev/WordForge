@@ -1,5 +1,8 @@
 package com.wordforge.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,17 +27,25 @@ import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.SaveAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -45,11 +56,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +71,7 @@ import com.wordforge.data.Word
 import com.wordforge.ui.theme.TierColors
 import com.wordforge.viewmodel.WordViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +87,43 @@ fun WordListScreen(
     var showDeleteAllDialog1 by remember { mutableStateOf(false) }
     var showDeleteAllDialog2 by remember { mutableStateOf(false) }
     var wordToDelete by remember { mutableStateOf<Word?>(null) }
+    var menuOpen by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            try {
+                val json = viewModel.exportToJson()
+                context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                snackbarHostState.showSnackbar("Exported ${words.size} words")
+            } catch (t: Throwable) {
+                snackbarHostState.showSnackbar("Export failed: ${t.message ?: "unknown error"}")
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri ?: return@rememberLauncherForActivityResult
+        scope.launch {
+            try {
+                val json = context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()?.use { it.readText() }
+                    ?: return@launch
+                val count = viewModel.importFromJson(json)
+                snackbarHostState.showSnackbar("Imported $count words")
+            } catch (t: Throwable) {
+                snackbarHostState.showSnackbar("Import failed: ${t.message ?: "unknown error"}")
+            }
+        }
+    }
 
     // Tick every second for live countdowns
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -101,12 +152,59 @@ fun WordListScreen(
                             contentDescription = "How it works"
                         )
                     }
-                    if (words.isNotEmpty()) {
-                        IconButton(onClick = { showDeleteAllDialog1 = true }) {
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) {
                             Icon(
-                                imageVector = Icons.Rounded.DeleteSweep,
-                                contentDescription = "Delete all words"
+                                imageVector = Icons.Rounded.MoreVert,
+                                contentDescription = "More"
                             )
+                        }
+                        DropdownMenu(
+                            expanded = menuOpen,
+                            onDismissRequest = { menuOpen = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Export words") },
+                                leadingIcon = {
+                                    Icon(Icons.Rounded.SaveAlt, contentDescription = null)
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    exportLauncher.launch("wordforge-export.json")
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Import words") },
+                                leadingIcon = {
+                                    Icon(Icons.Rounded.FolderOpen, contentDescription = null)
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    importLauncher.launch(arrayOf("application/json"))
+                                }
+                            )
+                            if (words.isNotEmpty()) {
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete all words",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Rounded.DeleteSweep,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        menuOpen = false
+                                        showDeleteAllDialog1 = true
+                                    }
+                                )
+                            }
                         }
                     }
                 },
@@ -119,6 +217,7 @@ fun WordListScreen(
                 scrollBehavior = scrollBehavior
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNavigateToAddWord,

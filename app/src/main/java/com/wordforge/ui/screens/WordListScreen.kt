@@ -359,8 +359,8 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     }
 }
 
-// Compact mono-style due label for word cards: "OVERDUE", "2D 14H",
-// "5H 23M", "12M 04S", "37S". Two units max for legibility at small size.
+// Compact mono-style due label: "OVERDUE", "2D 14H", "5H 23M",
+// "12M 04S", "37S". Two units max for legibility at small sizes.
 fun formatCompactDue(nextPromptAt: Long, now: Long): String {
     val diff = nextPromptAt - now
     if (diff <= 0L) return "OVERDUE"
@@ -376,31 +376,5 @@ fun formatCompactDue(nextPromptAt: Long, now: Long): String {
         hours > 0 -> "${hours}H ${minutes}M"
         minutes > 0 -> "${minutes}M ${seconds.toString().padStart(2, '0')}S"
         else -> "${seconds}S"
-    }
-}
-
-// Kept for WordDetailScreen until step 08 rewrites that screen.
-fun formatCountdown(nextPromptAt: Long, now: Long): String {
-    val diff = nextPromptAt - now
-
-    if (diff <= 0) {
-        val overdue = -diff
-        return "Overdue by ${formatDuration(overdue)}"
-    }
-    return "${formatDuration(diff)} left"
-}
-
-fun formatDuration(ms: Long): String {
-    val totalSeconds = ms / 1000
-    val days = totalSeconds / 86400
-    val hours = (totalSeconds % 86400) / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-
-    return when {
-        days > 0 -> "${days}d ${hours}h ${minutes}m"
-        hours > 0 -> "${hours}h ${minutes}m ${seconds}s"
-        minutes > 0 -> "${minutes}m ${seconds}s"
-        else -> "${seconds}s"
     }
 }

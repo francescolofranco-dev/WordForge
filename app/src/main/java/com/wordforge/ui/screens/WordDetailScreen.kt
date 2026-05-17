@@ -1,11 +1,7 @@
 package com.wordforge.ui.screens
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,23 +19,28 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -52,18 +53,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.wordforge.data.Word
-import com.wordforge.domain.SpacedRepetition
-import com.wordforge.ui.theme.Success
-import com.wordforge.ui.theme.TierColors
+import com.wordforge.ui.components.StatTile
+import com.wordforge.ui.components.TierIndicator
+import com.wordforge.ui.theme.ForgeOrangeDeep
+import com.wordforge.ui.theme.ForgeOrangeSoft
+import com.wordforge.ui.theme.Sage
+import com.wordforge.ui.theme.SageSoft
 import com.wordforge.viewmodel.WordViewModel
 import kotlinx.coroutines.delay
+import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -79,6 +79,8 @@ fun WordDetailScreen(
     var word by remember { mutableStateOf<Word?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var meaningRevealed by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -93,21 +95,11 @@ fun WordDetailScreen(
         isLoading = false
     }
 
-    // Tint the app bar with the gradient's starting color so the bar
-    // and the hero backdrop read as one continuous region instead of
-    // showing a hard horizontal seam where they meet.
-    val surface = MaterialTheme.colorScheme.surface
-    val topBarTint = word?.let {
-        TierColors.getOrElse(it.currentTier) { TierColors.last() }
-            .copy(alpha = 0.18f)
-            .compositeOver(surface)
-    } ?: surface
-
     Scaffold(
-        containerColor = surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { },
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -116,12 +108,49 @@ fun WordDetailScreen(
                         )
                     }
                 },
+                actions = {
+                    if (word != null) {
+                        Box {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.MoreVert,
+                                    contentDescription = "More"
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = menuOpen,
+                                onDismissRequest = { menuOpen = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete word",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Rounded.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        menuOpen = false
+                                        showDeleteDialog = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = topBarTint,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                    containerColor = MaterialTheme.colorScheme.background,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
             )
-        }
+        },
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -146,270 +175,218 @@ fun WordDetailScreen(
 
                 else -> {
                     val currentWord = word!!
-                    val tierColor = TierColors.getOrElse(currentWord.currentTier) { TierColors.last() }
-                    val dateFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+                    val dateFormat = SimpleDateFormat("dd MMM yyyy · HH:mm", Locale.getDefault())
                     val isOverdue = currentWord.nextPromptAt <= now
 
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 24.dp),
                     ) {
-                        // Hero region — edge-to-edge tier-color gradient backdrop
-                        Box(
+                        TopLabelsRow(
+                            tier = currentWord.currentTier,
+                            nextPromptAt = currentWord.nextPromptAt,
+                            now = now,
+                            isOverdue = isOverdue,
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Text(
+                            text = currentWord.word,
+                            style = MaterialTheme.typography.displayLarge,
+                            color = MaterialTheme.colorScheme.onBackground,
+                        )
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        TierIndicator(tier = currentWord.currentTier)
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        RevealCard(
+                            meaning = currentWord.meaning,
+                            revealed = meaningRevealed,
+                            onToggle = { meaningRevealed = !meaningRevealed },
+                        )
+
+                        if (isOverdue) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            ReviewNowButton(onClick = { onNavigateToQuiz(currentWord.id) })
+                        }
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            StatTile(
+                                label = "Correct",
+                                value = currentWord.totalCorrect.toString(),
+                                icon = Icons.Rounded.Check,
+                                iconTint = Sage,
+                                container = SageSoft,
+                                modifier = Modifier.weight(1f),
+                            )
+                            StatTile(
+                                label = "Incorrect",
+                                value = currentWord.totalIncorrect.toString(),
+                                icon = Icons.Rounded.Close,
+                                iconTint = ForgeOrangeDeep,
+                                container = ForgeOrangeSoft,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(28.dp))
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            tierColor.copy(alpha = 0.18f),
-                                            Color.Transparent
-                                        )
-                                    )
-                                )
+                                .padding(vertical = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                                HeroHeader(word = currentWord, tierColor = tierColor)
-                                Spacer(modifier = Modifier.height(24.dp))
-                                TierProgressTrack(currentTier = currentWord.currentTier)
-                                Spacer(modifier = Modifier.height(20.dp))
-                            }
+                            Text(
+                                text = "ADDED",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = dateFormat.format(Date(currentWord.createdAt)),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
                         }
 
-                        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            MeaningCard(
-                                meaning = currentWord.meaning,
-                                revealed = meaningRevealed,
-                                onToggle = { meaningRevealed = !meaningRevealed }
-                            )
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            NextPromptCard(
-                                nextPromptAt = currentWord.nextPromptAt,
-                                now = now,
-                                isOverdue = isOverdue
-                            )
-
-                            if (isOverdue) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                ReviewNowButton(onClick = { onNavigateToQuiz(currentWord.id) })
-                            }
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            StatsRow(
-                                correct = currentWord.totalCorrect,
-                                incorrect = currentWord.totalIncorrect
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            DatesCard(
-                                createdAt = currentWord.createdAt,
-                                lastAnsweredAt = currentWord.lastAnsweredAt,
-                                dateFormat = dateFormat
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
         }
     }
-}
 
-@Composable
-private fun HeroHeader(word: Word, tierColor: androidx.compose.ui.graphics.Color) {
-    Column {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(tierColor)
-                .border(
-                    width = 4.dp,
-                    color = tierColor.copy(alpha = 0.18f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "${word.currentTier}",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = androidx.compose.ui.graphics.Color.White
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = word.word,
-            style = MaterialTheme.typography.displayLarge.copy(fontSize = 40.sp),
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "Tier ${word.currentTier} of ${SpacedRepetition.MAX_TIER}",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color = tierColor
-        )
-    }
-}
-
-@Composable
-private fun TierProgressTrack(currentTier: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        for (i in 0..SpacedRepetition.MAX_TIER) {
-            val isReached = i <= currentTier
-            val isCurrent = i == currentTier
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(if (isCurrent) 10.dp else 8.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(
-                        if (isReached)
-                            TierColors.getOrElse(i) { TierColors.last() }
-                        else
-                            MaterialTheme.colorScheme.surfaceContainerHighest
-                    )
-            )
-        }
-    }
-}
-
-@Composable
-private fun MeaningCard(
-    meaning: String,
-    revealed: Boolean,
-    onToggle: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle)
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
-            ),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-        )
-    ) {
-        if (revealed) {
-            Column(modifier = Modifier.padding(20.dp)) {
+    if (showDeleteDialog) {
+        val current = word
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete word") },
+            text = {
                 Text(
-                    text = meaning,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    "Delete \"${current?.word ?: ""}\"? This cannot be undone."
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.VisibilityOff,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Hide",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    current?.let {
+                        viewModel.deleteWord(it)
+                        onNavigateBack()
+                    }
+                }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
-            }
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 22.dp, horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Visibility,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Tap to reveal meaning",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-            }
-        }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            },
+        )
     }
 }
 
 @Composable
-private fun NextPromptCard(
+private fun TopLabelsRow(
+    tier: Int,
     nextPromptAt: Long,
     now: Long,
-    isOverdue: Boolean
+    isOverdue: Boolean,
 ) {
-    Card(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isOverdue)
-                MaterialTheme.colorScheme.errorContainer
-            else
-                MaterialTheme.colorScheme.surfaceContainerLow
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "TIER $tier OF 8",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.W600,
+            color = MaterialTheme.colorScheme.primary,
         )
+        Text(
+            text = if (isOverdue) "OVERDUE" else "NEXT · ${formatCompactDue(nextPromptAt, now)}",
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isOverdue) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun RevealCard(
+    meaning: String,
+    revealed: Boolean,
+    onToggle: () -> Unit,
+) {
+    Surface(
+        onClick = onToggle,
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Icon(
-                imageVector = Icons.Rounded.AccessTime,
-                contentDescription = null,
-                tint = if (isOverdue)
-                    MaterialTheme.colorScheme.error
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "Next prompt",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (revealed) Icons.Rounded.VisibilityOff
+                                  else Icons.Rounded.Visibility,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
                 )
-                Text(
-                    text = formatCountdown(nextPromptAt, now),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isOverdue)
-                        MaterialTheme.colorScheme.error
-                    else
-                        MaterialTheme.colorScheme.onSurface
-                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                if (revealed) {
+                    Text(
+                        text = meaning,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Tap to hide.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    )
+                } else {
+                    Text(
+                        text = "Tap to reveal meaning",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Recall first, then check.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    )
+                }
             }
         }
     }
@@ -422,139 +399,21 @@ private fun ReviewNowButton(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        )
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+        ),
     ) {
         Icon(
             imageVector = Icons.Rounded.PlayArrow,
             contentDescription = null,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp),
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = "Review now",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-@Composable
-private fun StatsRow(correct: Int, incorrect: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        StatTile(
-            value = correct,
-            label = "Correct",
-            color = Success,
-            icon = Icons.Rounded.Check,
-            modifier = Modifier.weight(1f)
-        )
-        StatTile(
-            value = incorrect,
-            label = "Incorrect",
-            color = MaterialTheme.colorScheme.error,
-            icon = Icons.Rounded.Close,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun StatTile(
-    value: Int,
-    label: String,
-    color: androidx.compose.ui.graphics.Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.08f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(color.copy(alpha = 0.20f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = "$value",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun DatesCard(
-    createdAt: Long,
-    lastAnsweredAt: Long?,
-    dateFormat: SimpleDateFormat
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
-    ) {
-        Column(modifier = Modifier.padding(18.dp)) {
-            DetailRow(
-                label = "Added on",
-                value = dateFormat.format(Date(createdAt))
-            )
-
-            if (lastAnsweredAt != null) {
-                Spacer(modifier = Modifier.height(10.dp))
-                DetailRow(
-                    label = "Last answered",
-                    value = dateFormat.format(Date(lastAnsweredAt))
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun DetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
+            style = MaterialTheme.typography.titleLarge,
         )
     }
 }

@@ -73,7 +73,7 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
         return repository.getWordById(id)
     }
 
-    suspend it fun getOverdueWords(): List<Word> {
+    suspend fun getOverdueWords(): List<Word> {
         return repository.getAllForNextPrompting(System.currentTimeMillis())
     }
 

@@ -252,8 +252,8 @@ fun WordDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "ADDED",
-                                style = MaterialTheme.typography.labelMedium,
+                                text = "Added",
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(

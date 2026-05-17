@@ -24,13 +24,13 @@ fun TierIndicator(
     color: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         repeat(total) { i ->
             Box(
                 Modifier
-                    .height(4.dp)
-                    .width(if (i < tier) 14.dp else 8.dp)
-                    .clip(RoundedCornerShape(2.dp))
+                    .height(6.dp)
+                    .width(24.dp)
+                    .clip(RoundedCornerShape(3.dp))
                     .background(if (i < tier) color else MaterialTheme.colorScheme.outline)
             )
         }

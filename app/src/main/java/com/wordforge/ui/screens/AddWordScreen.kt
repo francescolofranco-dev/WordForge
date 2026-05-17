@@ -82,11 +82,11 @@ fun AddWordScreen(
         ) {
             Text(
                 text = "What do you want to learn?",
-                style = MaterialTheme.typography.displayMedium,
+                style = MaterialTheme.typography.displayLarge,
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = "A single word, phrase, or expression in any language.",
@@ -94,31 +94,31 @@ fun AddWordScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
             FieldLabel("WORD OR PHRASE")
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             OutlinedTextField(
                 value = word,
                 onValueChange = { word = it },
                 placeholder = { Text("e.g. petrichor") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = filledFieldColors(),
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             FieldLabel("MEANING")
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             OutlinedTextField(
                 value = meaning,
                 onValueChange = { meaning = it },
-                placeholder = { Text("e.g. the pleasant smell after rain on dry earth") },
-                minLines = 4,
+                placeholder = { Text("Define it in your own words for stronger recall.") },
+                minLines = 5,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = filledFieldColors(),
             )
 

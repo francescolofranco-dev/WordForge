@@ -126,12 +126,27 @@ fun WordListScreen(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
+            val overdueNow = words.count { it.nextPromptAt <= now }
             TopAppBar(
                 title = {
-                    Text(
-                        text = "WordForge",
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
+                    Column {
+                        Text(
+                            text = "WordForge",
+                            style = MaterialTheme.typography.headlineMedium,
+                        )
+                        if (words.isNotEmpty()) {
+                            val totalLabel = if (words.size == 1) "1 word" else "${words.size} words"
+                            val subtitle = if (overdueNow > 0)
+                                "$totalLabel · $overdueNow due now"
+                            else
+                                totalLabel
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 },
                 navigationIcon = {
                     SparksLogo(
@@ -376,11 +391,11 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     }
 }
 
-// Compact mono-style due label: "OVERDUE", "2D 14H", "5H 23M",
-// "12M 04S", "37S". Two units max for legibility at small sizes.
+// Compact mono-style due label: "overdue", "2d 14h", "5h 23m",
+// "12m 04s", "37s". Two units max for legibility at small sizes.
 fun formatCompactDue(nextPromptAt: Long, now: Long): String {
     val diff = nextPromptAt - now
-    if (diff <= 0L) return "OVERDUE"
+    if (diff <= 0L) return "overdue"
 
     val totalSeconds = diff / 1000
     val days = totalSeconds / 86400
@@ -389,9 +404,9 @@ fun formatCompactDue(nextPromptAt: Long, now: Long): String {
     val seconds = totalSeconds % 60
 
     return when {
-        days > 0 -> "${days}D ${hours}H"
-        hours > 0 -> "${hours}H ${minutes}M"
-        minutes > 0 -> "${minutes}M ${seconds.toString().padStart(2, '0')}S"
-        else -> "${seconds}S"
+        days > 0 -> "${days}d ${hours}h"
+        hours > 0 -> "${hours}h ${minutes}m"
+        minutes > 0 -> "${minutes}m ${seconds.toString().padStart(2, '0')}s"
+        else -> "${seconds}s"
     }
 }

@@ -96,10 +96,11 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
                 else o.put("lastAnsweredAt", JSONObject.NULL)
             o.put("totalCorrect", w.totalCorrect)
             o.put("totalIncorrect", w.totalIncorrect)
+            o.put("currentStreak", w.currentStreak)
             arr.put(o)
         }
         return JSONObject().apply {
-            put("version", 1)
+            put("version", 2)
             put("exportedAt", System.currentTimeMillis())
             put("count", words.size)
             put("words", arr)
@@ -128,6 +129,7 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
                     lastAnsweredAt = if (o.isNull("lastAnsweredAt")) null else o.getLong("lastAnsweredAt"),
                     totalCorrect = o.getInt("totalCorrect"),
                     totalIncorrect = o.getInt("totalIncorrect"),
+                    currentStreak = if (o.has("currentStreak")) o.getInt("currentStreak") else 0,
                 )
             )
         }

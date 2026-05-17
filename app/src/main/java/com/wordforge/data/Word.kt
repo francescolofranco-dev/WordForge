@@ -15,4 +15,7 @@ data class Word (
     val lastAnsweredAt: Long? = null,
     val totalCorrect: Int = 0,
     val totalIncorrect: Int = 0,
+    // Consecutive correct answers since the last "Nope" tap. Reset to 0
+    // on any incorrect answer; incremented on each correct one.
+    val currentStreak: Int = 0,
 )

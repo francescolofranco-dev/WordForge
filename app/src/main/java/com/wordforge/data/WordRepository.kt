@@ -64,7 +64,8 @@ class WordRepository(private val wordDao: WordDao) {
             currentTier = newTier,
             nextPromptAt = currentTime + SpacedRepetition.nextDelayMs(newTier),
             totalCorrect = word.totalCorrect + 1,
-            lastAnsweredAt = currentTime
+            lastAnsweredAt = currentTime,
+            currentStreak = word.currentStreak + 1,
         )
         wordDao.update(updatedWord)
         return updatedWord
@@ -81,7 +82,8 @@ class WordRepository(private val wordDao: WordDao) {
             currentTier = newTier,
             nextPromptAt = currentTime + SpacedRepetition.nextDelayMs(newTier),
             totalIncorrect = word.totalIncorrect + 1,
-            lastAnsweredAt = currentTime
+            lastAnsweredAt = currentTime,
+            currentStreak = 0,
         )
         wordDao.update(updatedWord)
         return updatedWord

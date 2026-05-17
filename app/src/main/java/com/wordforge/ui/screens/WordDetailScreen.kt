@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import com.wordforge.data.Word
 import com.wordforge.ui.components.StatTile
+import com.wordforge.ui.components.StreakCard
 import com.wordforge.ui.components.TierIndicator
 import com.wordforge.ui.theme.ForgeOrangeDeep
 import com.wordforge.ui.theme.ForgeOrangeSoft
@@ -238,6 +239,11 @@ fun WordDetailScreen(
                                 container = ForgeOrangeSoft,
                                 modifier = Modifier.weight(1f),
                             )
+                        }
+
+                        if (currentWord.currentStreak > 0) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            StreakCard(streak = currentWord.currentStreak)
                         }
 
                         Spacer(modifier = Modifier.height(28.dp))

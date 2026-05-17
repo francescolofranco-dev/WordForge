@@ -4,41 +4,28 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.FolderOpen
-import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.SaveAlt
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,18 +49,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.wordforge.R
 import com.wordforge.data.Word
-import com.wordforge.ui.theme.TierColors
+import com.wordforge.ui.components.SparksLogo
+import com.wordforge.ui.components.WordCard
+import com.wordforge.ui.components.WordForgeFab
 import com.wordforge.viewmodel.WordViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -87,7 +71,6 @@ fun WordListScreen(
     onNavigateToHowItWorks: () -> Unit
 ) {
     val words by viewModel.allWords.collectAsState()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     var showDeleteAllDialog1 by remember { mutableStateOf(false) }
     var showDeleteAllDialog2 by remember { mutableStateOf(false) }
@@ -130,7 +113,6 @@ fun WordListScreen(
         }
     }
 
-    // Tick every second for live countdowns
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -139,20 +121,22 @@ fun WordListScreen(
         }
     }
 
-    // Linear/Notion-style bar — a faint warm wash over surface so the
-    // chrome is calm but still hints at the brand temperature, instead
-    // of pure black-on-black.
-    val surface = MaterialTheme.colorScheme.surface
-    val barTint = MaterialTheme.colorScheme.primary
-        .copy(alpha = 0.06f)
-        .compositeOver(surface)
-
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { WordForgeWordmark() },
+                title = {
+                    Text(
+                        text = "WordForge",
+                        style = MaterialTheme.typography.headlineMedium,
+                    )
+                },
+                navigationIcon = {
+                    SparksLogo(
+                        size = 36.dp,
+                        modifier = Modifier.padding(start = 16.dp),
+                    )
+                },
                 actions = {
                     IconButton(onClick = onNavigateToHowItWorks) {
                         Icon(
@@ -217,34 +201,15 @@ fun WordListScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = barTint,
-                    scrolledContainerColor = barTint,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
-                scrollBehavior = scrollBehavior
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = onNavigateToAddWord,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                icon = {
-                    Icon(
-                        imageVector = Icons.Rounded.Add,
-                        contentDescription = null
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Add word",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            )
+            WordForgeFab(onClick = onNavigateToAddWord)
         }
     ) { innerPadding ->
         if (words.isEmpty()) {
@@ -258,17 +223,26 @@ fun WordListScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item { Spacer(modifier = Modifier.height(4.dp)) }
+                item {
+                    Text(
+                        text = "Due soon",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                    )
+                }
 
                 items(words, key = { it.id }) { word ->
                     WordCard(
-                        word = word,
-                        now = now,
+                        word = word.word,
+                        meaning = word.meaning,
+                        tier = word.currentTier,
+                        dueLabel = formatCompactDue(word.nextPromptAt, now),
                         onClick = { onNavigateToDetail(word.id) },
-                        onDelete = { wordToDelete = word }
+                        onLongClick = { wordToDelete = word },
                     )
                 }
 
@@ -277,7 +251,6 @@ fun WordListScreen(
         }
     }
 
-    // Single word delete confirmation
     wordToDelete?.let { word ->
         AlertDialog(
             onDismissRequest = { wordToDelete = null },
@@ -299,7 +272,6 @@ fun WordListScreen(
         )
     }
 
-    // Delete all — first confirmation
     if (showDeleteAllDialog1) {
         AlertDialog(
             onDismissRequest = { showDeleteAllDialog1 = false },
@@ -321,7 +293,6 @@ fun WordListScreen(
         )
     }
 
-    // Delete all — second confirmation
     if (showDeleteAllDialog2) {
         AlertDialog(
             onDismissRequest = { showDeleteAllDialog2 = false },
@@ -340,25 +311,6 @@ fun WordListScreen(
                     Text("Cancel")
                 }
             }
-        )
-    }
-}
-
-@Composable
-private fun WordForgeWordmark() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            imageVector = Icons.Rounded.LocalFireDepartment,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(22.dp)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = "WordForge",
-            color = MaterialTheme.colorScheme.onSurface,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = (-0.3).sp,
         )
     }
 }
@@ -407,102 +359,27 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-fun WordCard(
-    word: Word,
-    now: Long,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val tierColor = TierColors.getOrElse(word.currentTier) { TierColors.last() }
-    val isOverdue = word.nextPromptAt <= now
+// Compact mono-style due label for word cards: "OVERDUE", "2D 14H",
+// "5H 23M", "12M 04S", "37S". Two units max for legibility at small size.
+fun formatCompactDue(nextPromptAt: Long, now: Long): String {
+    val diff = nextPromptAt - now
+    if (diff <= 0L) return "OVERDUE"
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Tier-color edge stripe — instant visual signal of progress
-            Box(
-                modifier = Modifier
-                    .width(5.dp)
-                    .fillMaxHeight()
-                    .background(tierColor)
-            )
+    val totalSeconds = diff / 1000
+    val days = totalSeconds / 86400
+    val hours = (totalSeconds % 86400) / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
 
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Tier badge
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(tierColor.copy(alpha = 0.18f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "${word.currentTier}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = tierColor
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(14.dp))
-
-                // Word text and countdown
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = word.word,
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = formatCountdown(word.nextPromptAt, now),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (isOverdue) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (isOverdue)
-                            MaterialTheme.colorScheme.error
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Delete button
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Rounded.Delete,
-                        contentDescription = "Delete word",
-                        tint = MaterialTheme.colorScheme.outline
-                    )
-                }
-            }
-        }
+    return when {
+        days > 0 -> "${days}D ${hours}H"
+        hours > 0 -> "${hours}H ${minutes}M"
+        minutes > 0 -> "${minutes}M ${seconds.toString().padStart(2, '0')}S"
+        else -> "${seconds}S"
     }
 }
 
-/**
- * Formats the time remaining until the next prompt.
- * Shows "Overdue by Xh Ym" if past due, or "Xh Ym Zs left" if upcoming.
- */
+// Kept for WordDetailScreen until step 08 rewrites that screen.
 fun formatCountdown(nextPromptAt: Long, now: Long): String {
     val diff = nextPromptAt - now
 

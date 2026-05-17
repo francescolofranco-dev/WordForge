@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -92,8 +93,18 @@ fun WordDetailScreen(
         isLoading = false
     }
 
+    // Tint the app bar with the gradient's starting color so the bar
+    // and the hero backdrop read as one continuous region instead of
+    // showing a hard horizontal seam where they meet.
+    val surface = MaterialTheme.colorScheme.surface
+    val topBarTint = word?.let {
+        TierColors.getOrElse(it.currentTier) { TierColors.last() }
+            .copy(alpha = 0.18f)
+            .compositeOver(surface)
+    } ?: surface
+
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = surface,
         topBar = {
             TopAppBar(
                 title = { },
@@ -106,7 +117,7 @@ fun WordDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = topBarTint,
                     navigationIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )

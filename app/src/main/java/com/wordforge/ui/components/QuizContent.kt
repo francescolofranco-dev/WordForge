@@ -22,11 +22,10 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,11 +41,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.wordforge.data.Word
-import com.wordforge.ui.theme.Success
-import com.wordforge.ui.theme.SuccessContainer
-import com.wordforge.ui.theme.TierColors
+import com.wordforge.ui.theme.ForgeOrangeDeep
+import com.wordforge.ui.theme.ForgeOrangeSoft
+import com.wordforge.ui.theme.Sage
+import com.wordforge.ui.theme.SageSoft
 import kotlin.random.Random
 
 @Composable
@@ -73,12 +72,10 @@ fun QuizContent(
         "Do you remember the word?"
     val revealButtonLabel = if (promptIsWord) "Reveal meaning" else "Reveal word"
 
-    val tierColor = TierColors.getOrElse(word.currentTier) { TierColors.last() }
-
     var heroVisible by remember(word.id) { mutableStateOf(false) }
     LaunchedEffect(word.id) { heroVisible = true }
     val heroScale by animateFloatAsState(
-        targetValue = if (heroVisible) 1f else 0.85f,
+        targetValue = if (heroVisible) 1f else 0.92f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -91,44 +88,31 @@ fun QuizContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(tierColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "${word.currentTier}",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
+        Text(
+            text = "TIER ${word.currentTier} OF 8",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.W600,
+            color = MaterialTheme.colorScheme.primary,
+        )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         val promptStyle = if (promptIsWord) {
-            MaterialTheme.typography.displayLarge.copy(
-                fontSize = 56.sp,
-                lineHeight = 64.sp,
-                letterSpacing = (-1).sp
-            )
+            MaterialTheme.typography.displayLarge
         } else {
             MaterialTheme.typography.headlineMedium
         }
         Text(
             text = promptText,
             style = promptStyle,
-            fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
                 .fillMaxWidth()
                 .scale(heroScale)
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(36.dp))
 
         if (!revealed) {
             Text(
@@ -144,52 +128,47 @@ fun QuizContent(
                 onClick = { revealed = true },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
             ) {
                 Text(
                     text = revealButtonLabel,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
         } else if (!answered) {
-            val revealStyle = if (promptIsWord) {
-                MaterialTheme.typography.titleMedium
-            } else {
-                MaterialTheme.typography.headlineMedium
-            }
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                )
+                shape = RoundedCornerShape(18.dp),
+                color = ForgeOrangeSoft,
             ) {
                 Text(
                     text = revealText,
-                    style = revealStyle,
-                    fontWeight = if (promptIsWord) FontWeight.Normal else FontWeight.SemiBold,
+                    style = if (promptIsWord)
+                        MaterialTheme.typography.titleLarge
+                    else
+                        MaterialTheme.typography.headlineMedium,
                     modifier = Modifier
                         .padding(20.dp)
                         .fillMaxWidth(),
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             Text(
                 text = "Did you get it right?",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 OutlinedButton(
                     onClick = {
@@ -199,22 +178,20 @@ fun QuizContent(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                        contentColor = ForgeOrangeDeep,
+                    ),
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Nope", style = MaterialTheme.typography.titleMedium)
+                    Text("Nope", style = MaterialTheme.typography.titleLarge)
                 }
-
-                Spacer(modifier = Modifier.width(16.dp))
 
                 Button(
                     onClick = {
@@ -224,63 +201,62 @@ fun QuizContent(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Success
-                    )
+                        containerColor = Sage,
+                        contentColor = Color.White,
+                    ),
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Check,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(20.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Got it!", style = MaterialTheme.typography.titleMedium)
+                    Text("Got it!", style = MaterialTheme.typography.titleLarge)
                 }
             }
         } else {
-            val feedbackColor = if (wasCorrect == true) Success else MaterialTheme.colorScheme.error
-            val bgColor = if (wasCorrect == true) SuccessContainer else MaterialTheme.colorScheme.errorContainer
+            val feedbackAccent = if (wasCorrect == true) Sage else ForgeOrangeDeep
+            val feedbackBg = if (wasCorrect == true) SageSoft else ForgeOrangeSoft
             val feedbackText = if (wasCorrect == true)
-                "Nice! Moving to the next tier."
+                "Nice — moving to the next tier."
             else
                 "No worries — you'll see this one again sooner."
             val feedbackIcon = if (wasCorrect == true) Icons.Rounded.Check else Icons.Rounded.Close
 
-            Card(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = bgColor)
+                shape = RoundedCornerShape(18.dp),
+                color = feedbackBg,
             ) {
                 Column(
                     modifier = Modifier
                         .padding(24.dp)
                         .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(feedbackColor),
-                        contentAlignment = Alignment.Center
+                            .background(feedbackAccent),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = feedbackIcon,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(28.dp),
                         )
                     }
-
                     Spacer(modifier = Modifier.height(12.dp))
-
                     Text(
                         text = feedbackText,
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
                     )
                 }
             }
@@ -291,12 +267,12 @@ fun QuizContent(
                 onClick = onAdvance,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(12.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
             ) {
                 Text(
                     text = advanceLabel,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleLarge,
                 )
             }
         }

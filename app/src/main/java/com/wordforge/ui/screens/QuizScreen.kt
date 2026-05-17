@@ -52,6 +52,7 @@ import com.wordforge.ui.theme.Success
 import com.wordforge.ui.theme.SuccessContainer
 import com.wordforge.ui.theme.TierColors
 import com.wordforge.viewmodel.WordViewModel
+import kotlin.random.Random
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +63,7 @@ fun QuizScreen(
 ) {
     var word by remember { mutableStateOf<Word?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    var meaningRevealed by remember { mutableStateOf(false) }
+    var revealed by remember { mutableStateOf(false) }
     var answered by remember { mutableStateOf(false) }
     var wasCorrect by remember { mutableStateOf<Boolean?>(null) }
 
@@ -116,6 +117,18 @@ fun QuizScreen(
                     val currentWord = word!!
                     val tierColor = TierColors.getOrElse(currentWord.currentTier) { TierColors.last() }
 
+                    // Randomly flip which side is the prompt for this session,
+                    // so the user has to recall the word from its meaning as
+                    // often as the meaning from the word.
+                    val promptIsWord = remember(currentWord.id) { Random.nextBoolean() }
+                    val promptText = if (promptIsWord) currentWord.word else currentWord.meaning
+                    val revealText = if (promptIsWord) currentWord.meaning else currentWord.word
+                    val recallQuestion = if (promptIsWord)
+                        "Do you remember what this means?"
+                    else
+                        "Do you remember the word?"
+                    val revealButtonLabel = if (promptIsWord) "Reveal meaning" else "Reveal word"
+
                     var heroVisible by remember { mutableStateOf(false) }
                     LaunchedEffect(currentWord.id) { heroVisible = true }
                     val heroScale by animateFloatAsState(
@@ -150,14 +163,21 @@ fun QuizScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // The word — hero centerpiece, scales in with a soft bounce
-                        Text(
-                            text = currentWord.word,
-                            style = MaterialTheme.typography.displayLarge.copy(
+                        // Prompt — hero centerpiece, scales in with a soft bounce.
+                        // Word prompts get the big display style; meaning prompts
+                        // use a smaller headline so longer definitions fit.
+                        val promptStyle = if (promptIsWord) {
+                            MaterialTheme.typography.displayLarge.copy(
                                 fontSize = 56.sp,
                                 lineHeight = 64.sp,
                                 letterSpacing = (-1).sp
-                            ),
+                            )
+                        } else {
+                            MaterialTheme.typography.headlineMedium
+                        }
+                        Text(
+                            text = promptText,
+                            style = promptStyle,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -168,10 +188,10 @@ fun QuizScreen(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        if (!meaningRevealed) {
+                        if (!revealed) {
                             // Step 1: Think, then reveal
                             Text(
-                                text = "Do you remember what this means?",
+                                text = recallQuestion,
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -180,19 +200,26 @@ fun QuizScreen(
                             Spacer(modifier = Modifier.height(24.dp))
 
                             Button(
-                                onClick = { meaningRevealed = true },
+                                onClick = { revealed = true },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(52.dp),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    text = "Reveal meaning",
+                                    text = revealButtonLabel,
                                     style = MaterialTheme.typography.titleMedium
                                 )
                             }
                         } else if (!answered) {
-                            // Step 2: Show meaning, self-grade
+                            // Step 2: Show the other side, self-grade.
+                            // Word reveals get a bigger style so they read
+                            // as the punchline; meaning reveals stay compact.
+                            val revealStyle = if (promptIsWord) {
+                                MaterialTheme.typography.titleMedium
+                            } else {
+                                MaterialTheme.typography.headlineMedium
+                            }
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
@@ -201,8 +228,9 @@ fun QuizScreen(
                                 )
                             ) {
                                 Text(
-                                    text = currentWord.meaning,
-                                    style = MaterialTheme.typography.titleMedium,
+                                    text = revealText,
+                                    style = revealStyle,
+                                    fontWeight = if (promptIsWord) FontWeight.Normal else FontWeight.SemiBold,
                                     modifier = Modifier
                                         .padding(20.dp)
                                         .fillMaxWidth(),

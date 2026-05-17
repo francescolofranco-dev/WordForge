@@ -6,15 +6,21 @@
     android:viewportHeight="108">
 
     <!--
-      Adaptive icon foreground. Drawing surface is 108x108 dp, but only the
-      center 66dp circle is guaranteed visible across launcher mask shapes.
-      The "W" mark below sits well within that safe zone (x:30–78, y:36–76).
+      Adaptive icon foreground. 108x108 surface, with the inner 66dp circle
+      guaranteed visible across launcher masks. The heavy "W" mark is the
+      brand letter (Quizlet-style geometric lockup); the small ember dot
+      above its right peak is the spark.
     -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="10"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
+        android:strokeWidth="14"
+        android:strokeLineCap="butt"
+        android:strokeLineJoin="miter"
+        android:strokeMiterLimit="4"
         android:pathData="M30,36 L42,76 L54,52 L66,76 L78,36" />
+
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M69,28 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
 </vector>

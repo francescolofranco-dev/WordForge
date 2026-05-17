@@ -73,6 +73,10 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
         return repository.getWordById(id)
     }
 
+    suspend it fun getOverdueWords(): List<Word> {
+        return repository.getAllForNextPrompting(System.currentTimeMillis())
+    }
+
     /**
      * Snapshot of every word as a pretty-printed JSON document.
      * Round-trips with [importFromJson] — every persisted field is preserved.

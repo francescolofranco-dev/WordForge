@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.wordforge.ui.screens.AddWordScreen
 import com.wordforge.ui.screens.HowItWorksScreen
+import com.wordforge.ui.screens.OverdueReviewScreen
 import com.wordforge.ui.screens.QuizScreen
 import com.wordforge.ui.screens.WordDetailScreen
 import com.wordforge.ui.screens.WordListScreen
@@ -34,7 +35,17 @@ fun NavGraph(
                 },
                 onNavigateToHowItWorks = {
                     navController.navigate(Screen.HowItWorks.route)
+                },
+                onNavigateToOverdueReview = {
+                    navController.navigate(Screen.OverdueReview.route)
                 }
+            )
+        }
+
+        composable(Screen.OverdueReview.route) {
+            OverdueReviewScreen(
+                viewModel = viewModel,
+                onFinished = { navController.popBackStack() }
             )
         }
 

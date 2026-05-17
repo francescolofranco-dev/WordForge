@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.wordforge.R
 import com.wordforge.data.Word
+import com.wordforge.ui.components.OverdueCard
 import com.wordforge.ui.components.SparksLogo
 import com.wordforge.ui.components.WordCard
 import com.wordforge.ui.components.WordForgeFab
@@ -68,7 +69,8 @@ fun WordListScreen(
     viewModel: WordViewModel,
     onNavigateToAddWord: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
-    onNavigateToHowItWorks: () -> Unit
+    onNavigateToHowItWorks: () -> Unit,
+    onNavigateToOverdueReview: () -> Unit
 ) {
     val words by viewModel.allWords.collectAsState()
 
@@ -219,6 +221,9 @@ fun WordListScreen(
                     .padding(innerPadding)
             )
         } else {
+            val overdueCount = words.count { it.nextPromptAt <= now }
+            val upcoming = words.filter { it.nextPromptAt > now }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -226,24 +231,36 @@ fun WordListScreen(
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item {
-                    Text(
-                        text = "Due soon",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-                    )
+                if (overdueCount > 0) {
+                    item {
+                        OverdueCard(
+                            count = overdueCount,
+                            onClick = onNavigateToOverdueReview,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 }
 
-                items(words, key = { it.id }) { word ->
-                    WordCard(
-                        word = word.word,
-                        meaning = word.meaning,
-                        tier = word.currentTier,
-                        dueLabel = formatCompactDue(word.nextPromptAt, now),
-                        onClick = { onNavigateToDetail(word.id) },
-                        onLongClick = { wordToDelete = word },
-                    )
+                if (upcoming.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Up next",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                        )
+                    }
+
+                    items(upcoming, key = { it.id }) { word ->
+                        WordCard(
+                            word = word.word,
+                            meaning = word.meaning,
+                            tier = word.currentTier,
+                            dueLabel = formatCompactDue(word.nextPromptAt, now),
+                            onClick = { onNavigateToDetail(word.id) },
+                            onLongClick = { wordToDelete = word },
+                        )
+                    }
                 }
 
                 item { Spacer(modifier = Modifier.height(96.dp)) }

@@ -4,23 +4,17 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!--
-      Adaptive icon foreground. 108x108 surface, with the inner 66dp circle
-      guaranteed visible across launcher masks. The heavy "W" mark is the
-      brand letter (Quizlet-style geometric lockup); the small ember dot
-      above its right peak is the spark.
-    -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeWidth="14"
-        android:strokeLineCap="butt"
-        android:strokeLineJoin="miter"
-        android:strokeMiterLimit="4"
-        android:pathData="M30,36 L42,76 L54,52 L66,76 L78,36" />
-
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M69,28 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0 Z" />
+    <!-- Sparks sit in the safe-zone (66dp inset). 5 white circles tracing a W. -->
+    <group android:translateX="14" android:translateY="14">
+        <path android:fillColor="#FFFFFF"
+              android:pathData="M16.4,24.3 a5.7,5.7 0 1,0 11.4,0 a5.7,5.7 0 1,0 -11.4,0 Z" />
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.85"
+              android:pathData="M24.1,58.3 a4.9,4.9 0 1,0 9.8,0 a4.9,4.9 0 1,0 -9.8,0 Z" />
+        <path android:fillColor="#FFFFFF"
+              android:pathData="M33.5,37.3 a6.5,6.5 0 1,0 13,0 a6.5,6.5 0 1,0 -13,0 Z" />
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.85"
+              android:pathData="M46.1,58.3 a4.9,4.9 0 1,0 9.8,0 a4.9,4.9 0 1,0 -9.8,0 Z" />
+        <path android:fillColor="#FFFFFF"
+              android:pathData="M53.9,24.3 a5.7,5.7 0 1,0 11.4,0 a5.7,5.7 0 1,0 -11.4,0 Z" />
+    </group>
 </vector>

@@ -24,7 +24,7 @@ object NotificationScheduler {
      * Schedules a notification for a word at a specific time.
      * If a notification was already scheduled for this word, it gets replaced.
      */
-    fun schedule(context: Context, wordId: String, wordText: String, delayMs: Long) {
+    fun schedule(context: Context, wordId: String, delayMs: Long) {
         val workManager = WorkManager.getInstance(context)
 
         // Cancel any existing reminder for this word first
@@ -33,10 +33,7 @@ object NotificationScheduler {
         val workRequest = OneTimeWorkRequestBuilder<WordReminderWorker>()
             .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
             .setInputData(
-                workDataOf(
-                    WordReminderWorker.KEY_WORD_ID to wordId,
-                    WordReminderWorker.KEY_WORD_TEXT to wordText
-                )
+                workDataOf(WordReminderWorker.KEY_WORD_ID to wordId)
             )
             .addTag(workTag(wordId))
             .build()

@@ -137,7 +137,6 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
         NotificationScheduler.schedule(
             context = getApplication(),
             wordId = word.id,
-            wordText = word.word,
             delayMs = delayMs
         )
     }

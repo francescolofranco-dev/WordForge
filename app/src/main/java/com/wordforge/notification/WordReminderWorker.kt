@@ -30,13 +30,11 @@ class WordReminderWorker(
 
     companion object {
         const val KEY_WORD_ID = "word_id"
-        const val KEY_WORD_TEXT = "word_text"
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override suspend fun doWork(): Result {
         val wordId = inputData.getString(KEY_WORD_ID) ?: return Result.failure()
-        val wordText = inputData.getString(KEY_WORD_TEXT) ?: return Result.failure()
 
         // Check notification permission (required on Android 13+)
         if (ContextCompat.checkSelfPermission(
@@ -61,13 +59,15 @@ class WordReminderWorker(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Body stays generic — naming the word here would let the user
+        // recognize it before the quiz randomizes which side is the prompt.
         val notification = NotificationCompat.Builder(
             applicationContext,
             WordForgeApp.NOTIFICATION_CHANNEL_ID
         )
             .setSmallIcon(R.drawable.ic_stat_wordforge)
             .setContentTitle("Time to review!")
-            .setContentText("Do you remember what \"$wordText\" means?")
+            .setContentText("Tap to test your memory.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

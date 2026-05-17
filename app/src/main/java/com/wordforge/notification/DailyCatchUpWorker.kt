@@ -55,15 +55,12 @@ class DailyCatchUpWorker(
             return Result.success()
         }
 
-        // Build a summary notification
+        // Build a summary notification — count only, no word previews,
+        // so the user doesn't recognize a word before the quiz randomizes
+        // which side becomes the prompt.
         val count = overdueWords.size
         val title = if (count == 1) "1 word to review" else "$count words to review"
-
-        // Show up to 3 word previews in the notification body
-        val preview = overdueWords
-            .take(3)
-            .joinToString(", ") { it.word }
-        val body = if (count <= 3) preview else "$preview and ${count - 3} more"
+        val body = "Open the app to review."
 
         // Tapping opens the app to the word list
         val intent = Intent(applicationContext, MainActivity::class.java).apply {
@@ -84,7 +81,6 @@ class DailyCatchUpWorker(
             .setSmallIcon(R.drawable.ic_stat_wordforge)
             .setContentTitle(title)
             .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

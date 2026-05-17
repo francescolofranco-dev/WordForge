@@ -41,13 +41,13 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,14 +61,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.wordforge.data.Word
 import com.wordforge.ui.theme.TierColors
 import com.wordforge.viewmodel.WordViewModel
@@ -84,7 +84,7 @@ fun WordListScreen(
     onNavigateToHowItWorks: () -> Unit
 ) {
     val words by viewModel.allWords.collectAsState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     var showDeleteAllDialog1 by remember { mutableStateOf(false) }
     var showDeleteAllDialog2 by remember { mutableStateOf(false) }
@@ -136,11 +136,19 @@ fun WordListScreen(
         }
     }
 
+    // Linear/Notion-style bar — a faint warm wash over surface so the
+    // chrome is calm but still hints at the brand temperature, instead
+    // of pure black-on-black.
+    val surface = MaterialTheme.colorScheme.surface
+    val barTint = MaterialTheme.colorScheme.primary
+        .copy(alpha = 0.06f)
+        .compositeOver(surface)
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = surface,
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = { WordForgeWordmark() },
                 actions = {
                     IconButton(onClick = onNavigateToHowItWorks) {
@@ -206,8 +214,8 @@ fun WordListScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    containerColor = barTint,
+                    scrolledContainerColor = barTint,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
@@ -336,40 +344,19 @@ fun WordListScreen(
 @Composable
 private fun WordForgeWordmark() {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.tertiary,
-                        )
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.LocalFireDepartment,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        Row {
-            Text(
-                text = "Word",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Black,
-            )
-            Text(
-                text = "Forge",
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Black,
-            )
-        }
+        Icon(
+            imageVector = Icons.Rounded.LocalFireDepartment,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "WordForge",
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = (-0.3).sp,
+        )
     }
 }
 

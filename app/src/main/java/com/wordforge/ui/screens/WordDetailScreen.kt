@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Visibility
@@ -45,6 +46,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -75,7 +77,8 @@ fun WordDetailScreen(
     wordId: String,
     viewModel: WordViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToQuiz: (String) -> Unit
+    onNavigateToQuiz: (String) -> Unit,
+    onNavigateToEdit: (String) -> Unit
 ) {
     var word by remember { mutableStateOf<Word?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -94,6 +97,14 @@ fun WordDetailScreen(
     LaunchedEffect(wordId) {
         word = viewModel.getWordById(wordId)
         isLoading = false
+    }
+
+    // Keep the displayed word in sync with edits made on the edit screen:
+    // when the live list changes, refresh our copy. find returns null for a
+    // just-deleted word, so the ?.let leaves the screen untouched mid-delete.
+    val liveWords by viewModel.allWords.collectAsState()
+    LaunchedEffect(liveWords) {
+        liveWords.find { it.id == wordId }?.let { word = it }
     }
 
     Scaffold(
@@ -122,6 +133,19 @@ fun WordDetailScreen(
                                 expanded = menuOpen,
                                 onDismissRequest = { menuOpen = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("Edit word") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Rounded.Edit,
+                                            contentDescription = null,
+                                        )
+                                    },
+                                    onClick = {
+                                        menuOpen = false
+                                        onNavigateToEdit(wordId)
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = {
                                         Text(

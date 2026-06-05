@@ -11,4 +11,7 @@ sealed class Screen(val route: String) {
     object WordDetail : Screen("word_detail/{wordId}") {
         fun createRoute(wordId: String) = "word_detail/$wordId"
     }
+    object EditWord : Screen("edit_word/{wordId}") {
+        fun createRoute(wordId: String) = "edit_word/$wordId"
+    }
 }

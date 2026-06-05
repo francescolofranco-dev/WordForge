@@ -18,4 +18,7 @@ data class Word (
     // Consecutive correct answers since the last "Nope" tap. Reset to 0
     // on any incorrect answer; incremented on each correct one.
     val currentStreak: Int = 0,
+    // When true, the quiz randomly shows either the word or the meaning as
+    // the prompt. When false, the word is always the prompt (recall meaning).
+    val randomlyFlip: Boolean = true,
 )

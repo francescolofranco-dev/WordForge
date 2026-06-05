@@ -41,13 +41,14 @@ class WordRepository(private val wordDao: WordDao) {
      * Creates a new word and inserts it into the database.
      * Returns the created Word so the caller can schedule a notification.
      */
-    suspend fun addWord(word: String, meaning: String): Word {
+    suspend fun addWord(word: String, meaning: String, randomlyFlip: Boolean): Word {
         val currentTime = System.currentTimeMillis()
         val newWord = Word(
             word = word,
             meaning = meaning,
             createdAt = currentTime,
-            nextPromptAt = currentTime + SpacedRepetition.nextDelayMs(0)
+            nextPromptAt = currentTime + SpacedRepetition.nextDelayMs(0),
+            randomlyFlip = randomlyFlip,
         )
         wordDao.insert(newWord)
         return newWord

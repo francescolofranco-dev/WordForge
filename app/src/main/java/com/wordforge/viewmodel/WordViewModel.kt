@@ -31,9 +31,9 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
             )
     }
 
-    fun addWord(word: String, meaning: String) {
+    fun addWord(word: String, meaning: String, randomlyFlip: Boolean) {
         viewModelScope.launch {
-            val newWord = repository.addWord(word, meaning)
+            val newWord = repository.addWord(word, meaning, randomlyFlip)
             scheduleNotification(newWord)
         }
     }
@@ -56,6 +56,17 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.delete(word)
             NotificationScheduler.cancel(getApplication(), word.id)
+        }
+    }
+
+    /**
+     * Persists edits to a word's text, meaning, or flip setting. The review
+     * schedule (nextPromptAt) is untouched, so no notification reschedule is
+     * needed. The reminder worker resolves the latest text by id at fire time.
+     */
+    fun updateWord(word: Word) {
+        viewModelScope.launch {
+            repository.update(word)
         }
     }
 
@@ -97,10 +108,11 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
             o.put("totalCorrect", w.totalCorrect)
             o.put("totalIncorrect", w.totalIncorrect)
             o.put("currentStreak", w.currentStreak)
+            o.put("randomlyFlip", w.randomlyFlip)
             arr.put(o)
         }
         return JSONObject().apply {
-            put("version", 2)
+            put("version", 3)
             put("exportedAt", System.currentTimeMillis())
             put("count", words.size)
             put("words", arr)
@@ -130,6 +142,7 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
                     totalCorrect = o.getInt("totalCorrect"),
                     totalIncorrect = o.getInt("totalIncorrect"),
                     currentStreak = if (o.has("currentStreak")) o.getInt("currentStreak") else 0,
+                    randomlyFlip = if (o.has("randomlyFlip")) o.getBoolean("randomlyFlip") else true,
                 )
             )
         }

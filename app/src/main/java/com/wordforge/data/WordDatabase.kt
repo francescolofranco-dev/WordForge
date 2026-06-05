@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlin.jvm.java
 
 
-@Database(entities = [Word::class], version = 2, exportSchema = false)
+@Database(entities = [Word::class], version = 3, exportSchema = false)
 abstract class WordDatabase : RoomDatabase() {
     abstract fun wordDao(): WordDao
     companion object {
@@ -17,6 +17,14 @@ abstract class WordDatabase : RoomDatabase() {
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE Word ADD COLUMN currentStreak INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        // v2 → v3: add the randomlyFlip column. Existing rows default to 1
+        // (true) so they keep the app's original random-flip behavior.
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE Word ADD COLUMN randomlyFlip INTEGER NOT NULL DEFAULT 1")
             }
         }
 
@@ -29,7 +37,7 @@ abstract class WordDatabase : RoomDatabase() {
                     WordDatabase::class.java,
                     "wordforge_db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 wordDatabaseInstance = instance
                 instance

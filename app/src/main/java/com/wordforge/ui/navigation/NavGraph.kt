@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.wordforge.ui.screens.AddWordScreen
+import com.wordforge.ui.screens.EditWordScreen
 import com.wordforge.ui.screens.HowItWorksScreen
 import com.wordforge.ui.screens.OverdueReviewScreen
 import com.wordforge.ui.screens.QuizScreen
@@ -57,8 +58,8 @@ fun NavGraph(
 
         composable(Screen.AddWord.route) {
             AddWordScreen(
-                onAddWord = { word, meaning ->
-                    viewModel.addWord(word, meaning)
+                onAddWord = { word, meaning, randomlyFlip ->
+                    viewModel.addWord(word, meaning, randomlyFlip)
                 },
                 onNavigateBack = {
                     navController.popBackStack()
@@ -93,6 +94,23 @@ fun NavGraph(
                 },
                 onNavigateToQuiz = { id ->
                     navController.navigate(Screen.Quiz.createRoute(id))
+                },
+                onNavigateToEdit = { id ->
+                    navController.navigate(Screen.EditWord.createRoute(id))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.EditWord.route,
+            arguments = listOf(navArgument("wordId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val wordId = backStackEntry.arguments?.getString("wordId") ?: return@composable
+            EditWordScreen(
+                wordId = wordId,
+                viewModel = viewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -61,9 +61,12 @@ fun QuizContent(
     var answered by remember(word.id) { mutableStateOf(false) }
     var wasCorrect by remember(word.id) { mutableStateOf<Boolean?>(null) }
 
-    // Random per-word flip — sometimes the word is the prompt, sometimes
-    // the meaning is. Re-rolls when word.id changes (batch flows).
-    val promptIsWord = remember(word.id) { Random.nextBoolean() }
+    // Per-word flip. When the word opts in (randomlyFlip), the prompt is
+    // sometimes the word and sometimes the meaning. Otherwise the word is
+    // always the prompt. Re-rolls when word.id changes (batch flows).
+    val promptIsWord = remember(word.id) {
+        if (word.randomlyFlip) Random.nextBoolean() else true
+    }
     val promptText = if (promptIsWord) word.word else word.meaning
     val revealText = if (promptIsWord) word.meaning else word.word
     val recallQuestion = if (promptIsWord)

@@ -8,7 +8,9 @@ import com.wordforge.notification.NotificationScheduler
 class WordForgeApp : Application() {
 
     companion object {
-        const val NOTIFICATION_CHANNEL_ID = "wordforge_reminders"
+        // A new channel id lets existing installs receive the quieter summary defaults;
+        // Android does not allow an app to lower an already-created channel's importance.
+        const val NOTIFICATION_CHANNEL_ID = "wordforge_review_summaries"
     }
 
     override fun onCreate() {
@@ -20,10 +22,10 @@ class WordForgeApp : Application() {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
-            "Word Reminders",
-            NotificationManager.IMPORTANCE_HIGH
+            "Review reminders",
+            NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Reminders to review words you're learning"
+            description = "A summary when words are ready to review"
         }
 
         val notificationManager = getSystemService(NotificationManager::class.java)

@@ -23,8 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.wordforge.ui.theme.Sage
-import com.wordforge.ui.theme.SageSoft
+import com.wordforge.ui.theme.LocalWordForgeColors
 import com.wordforge.ui.theme.WordForgeTheme
 
 @Composable
@@ -70,12 +69,14 @@ fun StatTile(
 @Composable
 private fun StatTilePreview() {
     WordForgeTheme {
+        val wordForgeColors = LocalWordForgeColors.current
+
         StatTile(
             label = "Correct",
             value = "42",
             icon = Icons.Rounded.Check,
-            iconTint = Sage,
-            container = SageSoft,
+            iconTint = wordForgeColors.correct,
+            container = wordForgeColors.correctContainer,
             modifier = Modifier.padding(16.dp),
         )
     }

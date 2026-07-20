@@ -2,54 +2,106 @@ package com.wordforge
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.navigation.compose.rememberNavController
+import com.wordforge.data.ThemePreferenceStore
+import com.wordforge.data.NotificationPreferenceStore
+import com.wordforge.notification.ReviewNotification
 import com.wordforge.ui.navigation.NavGraph
 import com.wordforge.ui.navigation.Screen
 import com.wordforge.ui.theme.WordForgeTheme
 
 class MainActivity : ComponentActivity() {
 
+    private var notificationsGranted by mutableStateOf(false)
+    private var pendingWordId by mutableStateOf<String?>(null)
+    private var pendingOverdueReview by mutableStateOf(false)
+
     // Launcher for requesting notification permission on Android 13+
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            // Permission result — notifications will work if granted,
-            // app still functions without them if denied
+            notificationsGranted = isGranted
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        requestNotificationPermission()
-
-        // Check if we were opened from a notification with a word ID
-        val wordIdFromNotification = intent.getStringExtra("wordId")
+        notificationsGranted = hasNotificationPermission()
+        handleIntent(intent)
 
         setContent {
-            WordForgeTheme {
+            val themePreferenceStore = remember { ThemePreferenceStore(applicationContext) }
+            val notificationPreferenceStore = remember {
+                NotificationPreferenceStore(applicationContext)
+            }
+            var themeMode by remember { mutableStateOf(themePreferenceStore.themeMode) }
+            var hasShownNotificationEducation by remember {
+                mutableStateOf(notificationPreferenceStore.hasShownEducation)
+            }
+            val darkTheme = themeMode.isDark(systemInDarkTheme = isSystemInDarkTheme())
+
+            SideEffect {
+                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                insetsController.isAppearanceLightStatusBars = !darkTheme
+                insetsController.isAppearanceLightNavigationBars = !darkTheme
+            }
+
+            WordForgeTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    NavGraph(navController = navController)
+                    NavGraph(
+                        navController = navController,
+                        themeMode = themeMode,
+                        onThemeModeChange = { selectedThemeMode ->
+                            themeMode = selectedThemeMode
+                            themePreferenceStore.themeMode = selectedThemeMode
+                        },
+                        shouldOfferNotifications = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            !notificationsGranted && !hasShownNotificationEducation,
+                        onNotificationEducationShown = {
+                            hasShownNotificationEducation = true
+                            notificationPreferenceStore.hasShownEducation = true
+                        },
+                        onRequestNotificationPermission = ::requestNotificationPermission,
+                    )
 
-                    // If opened from a notification, navigate to the quiz screen
-                    if (wordIdFromNotification != null) {
-                        // Clear the extra so rotation doesn't re-trigger navigation
-                        intent.removeExtra("wordId")
-                        navController.navigate(Screen.Quiz.createRoute(wordIdFromNotification)) {
-                            launchSingleTop = true
+                    LaunchedEffect(pendingWordId, pendingOverdueReview) {
+                        val wordId = pendingWordId
+                        when {
+                            pendingOverdueReview -> {
+                                pendingOverdueReview = false
+                                navController.navigate(Screen.OverdueReview.route) {
+                                    launchSingleTop = true
+                                }
+                            }
+                            wordId != null -> {
+                                pendingWordId = null
+                                navController.navigate(Screen.Quiz.createRoute(wordId)) {
+                                    launchSingleTop = true
+                                }
+                            }
                         }
                     }
                 }
@@ -58,15 +110,29 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestNotificationPermission() {
-        // Only needed on Android 13 (API 33) and above
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !hasNotificationPermission()) {
+            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent) {
+        pendingWordId = intent.getStringExtra("wordId")
+        pendingOverdueReview = intent.getBooleanExtra(ReviewNotification.EXTRA_OPEN_REVIEW, false)
+        intent.removeExtra("wordId")
+        intent.removeExtra(ReviewNotification.EXTRA_OPEN_REVIEW)
+    }
+
+    private fun hasNotificationPermission(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS,
+            ) == PackageManager.PERMISSION_GRANTED
     }
 }

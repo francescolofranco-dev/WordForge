@@ -16,9 +16,10 @@ import com.wordforge.ui.theme.WordForgeTheme
 
 @Composable
 fun WordForgeFab(
-    label: String = "Add word",
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    label: String = "Add word",
+    expanded: Boolean = true,
 ) {
     ExtendedFloatingActionButton(
         onClick = onClick,
@@ -27,6 +28,7 @@ fun WordForgeFab(
         containerColor = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
         elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 8.dp),
+        expanded = expanded,
         icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
         text = { Text(label, style = MaterialTheme.typography.titleLarge) },
     )

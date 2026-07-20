@@ -8,8 +8,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.wordforge.ui.theme.Ink
-import com.wordforge.ui.theme.SurfaceWhite
+import com.wordforge.ui.theme.LocalWordForgeColors
 
 // Snackbar host styled to sit on the cream palette: dark warm Ink
 // container with cream-white text, primary ember for the action label,
@@ -19,17 +18,19 @@ fun WordForgeSnackbarHost(
     hostState: SnackbarHostState,
     modifier: Modifier = Modifier,
 ) {
+    val wordForgeColors = LocalWordForgeColors.current
+
     SnackbarHost(
         hostState = hostState,
         modifier = modifier,
     ) { data ->
         Snackbar(
             snackbarData = data,
-            containerColor = Ink,
-            contentColor = SurfaceWhite,
+            containerColor = wordForgeColors.snackbarContainer,
+            contentColor = wordForgeColors.snackbarContent,
             actionColor = MaterialTheme.colorScheme.primary,
             actionContentColor = MaterialTheme.colorScheme.primary,
-            dismissActionContentColor = SurfaceWhite,
+            dismissActionContentColor = wordForgeColors.snackbarContent,
             shape = RoundedCornerShape(16.dp),
         )
     }

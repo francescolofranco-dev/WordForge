@@ -17,12 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.wordforge.ui.theme.Gold
-import com.wordforge.ui.theme.GoldSoft
-import com.wordforge.ui.theme.Ink
+import com.wordforge.ui.theme.LocalWordForgeColors
 import com.wordforge.ui.theme.WordForgeTheme
 
 @Composable
@@ -31,10 +28,12 @@ fun StreakCard(
     modifier: Modifier = Modifier,
 ) {
     val subtitle = streakSubtitle(streak)
+    val wordForgeColors = LocalWordForgeColors.current
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        color = GoldSoft,
+        color = wordForgeColors.celebrationContainer,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
@@ -44,13 +43,13 @@ fun StreakCard(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(Gold),
+                    .background(wordForgeColors.celebration),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = streak.toString(),
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
+                    color = wordForgeColors.onCelebration,
                 )
             }
             Column(
@@ -58,9 +57,9 @@ fun StreakCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = if (streak == 1) "1-day streak" else "$streak-day streak",
+                    text = if (streak == 1) "1 correct in a row" else "$streak correct in a row",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Ink,
+                    color = wordForgeColors.onCelebrationContainer,
                 )
                 Text(
                     text = subtitle,
@@ -80,7 +79,7 @@ private fun streakSubtitle(streak: Int): String = when {
         else "$remaining more to unlock a steady forge."
     }
     streak == STEADY_FORGE_THRESHOLD -> "Steady forge unlocked."
-    else -> "Look at you forge."
+    else -> "This word is holding strong."
 }
 
 private const val STEADY_FORGE_THRESHOLD = 5

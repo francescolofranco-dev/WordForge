@@ -1,5 +1,6 @@
 package com.wordforge.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,8 +15,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -24,6 +25,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -32,16 +34,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.wordforge.data.Word
 import com.wordforge.ui.components.QuizContent
-import com.wordforge.ui.theme.Sage
+import com.wordforge.ui.components.SparksLogo
+import com.wordforge.ui.theme.LocalWordForgeColors
 import com.wordforge.viewmodel.WordViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,22 +55,37 @@ fun OverdueReviewScreen(
 ) {
     // Snapshot the overdue list at entry — words graded during the session
     // become non-overdue but we still want to walk through them all.
-    var queue by remember { mutableStateOf<List<Word>?>(null) }
-    var index by remember { mutableIntStateOf(0) }
+    var queueIds by rememberSaveable { mutableStateOf<List<String>?>(null) }
+    var index by rememberSaveable { mutableIntStateOf(0) }
+    var currentWord by remember { mutableStateOf<Word?>(null) }
+    var showExitDialog by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        queue = viewModel.getOverdueWords()
+    LaunchedEffect(queueIds) {
+        if (queueIds == null) {
+            queueIds = viewModel.getOverdueWords().map { it.id }
+        }
     }
+
+    val currentId = queueIds?.getOrNull(index)
+    LaunchedEffect(currentId) {
+        currentWord = currentId?.let { viewModel.getWordById(it) }
+        if (currentId != null && currentWord == null) index++
+    }
+
+    fun requestExit() {
+        if (index > 0 && index < (queueIds?.size ?: 0)) showExitDialog = true else onFinished()
+    }
+    BackHandler(onBack = ::requestExit)
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
-                    val q = queue
-                    if (q != null && q.isNotEmpty()) {
+                    val ids = queueIds
+                    if (ids != null && ids.isNotEmpty()) {
                         Text(
-                            text = "Review ${(index + 1).coerceAtMost(q.size)} / ${q.size}",
+                            text = "Review ${(index + 1).coerceAtMost(ids.size)} / ${ids.size}",
                             style = MaterialTheme.typography.titleLarge,
                         )
                     } else {
@@ -78,7 +96,7 @@ fun OverdueReviewScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onFinished) {
+                    IconButton(onClick = ::requestExit) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Exit review"
@@ -98,29 +116,36 @@ fun OverdueReviewScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
-            val q = queue
+            val ids = queueIds
             when {
-                q == null -> {
+                ids == null -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
                         color = MaterialTheme.colorScheme.primary,
                     )
                 }
 
-                q.isEmpty() -> {
+                ids.isEmpty() -> {
                     NothingToReview(onFinished)
                 }
 
-                index >= q.size -> {
-                    AllDone(reviewed = q.size, onFinished = onFinished)
+                index >= ids.size -> {
+                    AllDone(reviewed = ids.size, onFinished = onFinished)
+                }
+
+                currentWord?.id != currentId -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = MaterialTheme.colorScheme.primary,
+                    )
                 }
 
                 else -> {
-                    val currentWord = q[index]
-                    val isLast = index == q.size - 1
+                    val reviewWord = currentWord ?: return@Box
+                    val isLast = index == ids.size - 1
                     Column(modifier = Modifier.fillMaxSize()) {
                         LinearProgressIndicator(
-                            progress = { (index + 1).toFloat() / q.size },
+                            progress = { (index + 1).toFloat() / ids.size },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(3.dp),
@@ -133,9 +158,9 @@ fun OverdueReviewScreen(
                                 .padding(24.dp),
                         ) {
                             QuizContent(
-                                word = currentWord,
-                                onCorrect = { viewModel.onAnswerCorrect(currentWord) },
-                                onIncorrect = { viewModel.onAnswerIncorrect(currentWord) },
+                                word = reviewWord,
+                                onCorrect = { viewModel.onAnswerCorrect(reviewWord) },
+                                onIncorrect = { viewModel.onAnswerIncorrect(reviewWord) },
                                 onAdvance = { index++ },
                                 advanceLabel = if (isLast) "Finish review" else "Next word",
                             )
@@ -144,6 +169,20 @@ fun OverdueReviewScreen(
                 }
             }
         }
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("Leave this review?") },
+            text = { Text("Your answers are saved. You can continue the remaining words later.") },
+            confirmButton = {
+                TextButton(onClick = onFinished) { Text("Leave review") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) { Text("Keep reviewing") }
+            },
+        )
     }
 }
 
@@ -157,14 +196,14 @@ private fun NothingToReview(onFinished: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Nothing overdue",
+            text = "Nothing ready",
             style = MaterialTheme.typography.displayMedium,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "All your words are still on their spaced schedule.",
+            text = "All your words are still on schedule.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -187,6 +226,8 @@ private fun NothingToReview(onFinished: () -> Unit) {
 
 @Composable
 private fun AllDone(reviewed: Int, onFinished: () -> Unit) {
+    val wordForgeColors = LocalWordForgeColors.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -198,15 +239,10 @@ private fun AllDone(reviewed: Int, onFinished: () -> Unit) {
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape)
-                .background(Sage),
+                .background(wordForgeColors.correct),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Check,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(56.dp),
-            )
+            SparksLogo(size = 68.dp)
         }
         Spacer(modifier = Modifier.height(28.dp))
         Text(

@@ -1,6 +1,7 @@
 package com.wordforge.notification
 
 import android.content.Context
+import androidx.work.ExistingWorkPolicy
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
@@ -27,9 +28,6 @@ object NotificationScheduler {
     fun schedule(context: Context, wordId: String, delayMs: Long) {
         val workManager = WorkManager.getInstance(context)
 
-        // Cancel any existing reminder for this word first
-        workManager.cancelAllWorkByTag(workTag(wordId))
-
         val workRequest = OneTimeWorkRequestBuilder<WordReminderWorker>()
             .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
             .setInputData(
@@ -38,7 +36,11 @@ object NotificationScheduler {
             .addTag(workTag(wordId))
             .build()
 
-        workManager.enqueue(workRequest)
+        workManager.enqueueUniqueWork(
+            workTag(wordId),
+            ExistingWorkPolicy.REPLACE,
+            workRequest,
+        )
     }
 
     /**
@@ -46,14 +48,26 @@ object NotificationScheduler {
      */
     fun cancel(context: Context, wordId: String) {
         WorkManager.getInstance(context)
-            .cancelAllWorkByTag(workTag(wordId))
+            .cancelUniqueWork(workTag(wordId))
     }
 
     /**
      * Cancels all pending word notifications (but not the daily catch-up).
      */
-    fun cancelAll(context: Context) {
-        WorkManager.getInstance(context).cancelAllWork()
+    fun cancelAll(context: Context, wordIds: Collection<String>) {
+        val workManager = WorkManager.getInstance(context)
+        wordIds.forEach { workManager.cancelUniqueWork(workTag(it)) }
+        ReviewNotification.cancel(context)
+    }
+
+    /** Refreshes the shared due-count notification without creating one job per overdue word. */
+    fun refreshSummary(context: Context) {
+        val request = OneTimeWorkRequestBuilder<WordReminderWorker>().build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            SUMMARY_REFRESH_WORK_NAME,
+            ExistingWorkPolicy.REPLACE,
+            request,
+        )
     }
 
     /**
@@ -102,4 +116,6 @@ object NotificationScheduler {
 
         return target.timeInMillis - now.timeInMillis
     }
+
+    private const val SUMMARY_REFRESH_WORK_NAME = "review_summary_refresh"
 }

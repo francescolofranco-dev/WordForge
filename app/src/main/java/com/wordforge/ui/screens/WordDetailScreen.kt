@@ -1,5 +1,6 @@
 package com.wordforge.ui.screens
 
+import android.text.format.DateFormat
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,11 +49,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,16 +64,15 @@ import com.wordforge.data.Word
 import com.wordforge.ui.components.StatTile
 import com.wordforge.ui.components.StreakCard
 import com.wordforge.ui.components.TierIndicator
-import com.wordforge.ui.theme.ForgeOrangeDeep
-import com.wordforge.ui.theme.ForgeOrangeSoft
-import com.wordforge.ui.theme.Sage
-import com.wordforge.ui.theme.SageSoft
+import com.wordforge.ui.components.WordForgeSnackbarHost
+import com.wordforge.ui.theme.LocalWordForgeColors
 import com.wordforge.viewmodel.WordViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,14 +85,19 @@ fun WordDetailScreen(
 ) {
     var word by remember { mutableStateOf<Word?>(null) }
     var isLoading by remember { mutableStateOf(true) }
-    var meaningRevealed by remember { mutableStateOf(false) }
+    var meaningRevealed by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val wordForgeColors = LocalWordForgeColors.current
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(word?.nextPromptAt) {
         while (true) {
-            delay(1000)
+            val untilDue = (word?.nextPromptAt ?: Long.MAX_VALUE) - System.currentTimeMillis()
+            delay(if (untilDue <= 60 * 60 * 1000L) 1000L else 30_000L)
             now = System.currentTimeMillis()
         }
     }
@@ -102,13 +110,14 @@ fun WordDetailScreen(
     // Keep the displayed word in sync with edits made on the edit screen:
     // when the live list changes, refresh our copy. find returns null for a
     // just-deleted word, so the ?.let leaves the screen untouched mid-delete.
-    val liveWords by viewModel.allWords.collectAsState()
+    val liveWords by viewModel.allWords.collectAsStateWithLifecycle()
     LaunchedEffect(liveWords) {
         liveWords.find { it.id == wordId }?.let { word = it }
     }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { WordForgeSnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {},
@@ -200,7 +209,8 @@ fun WordDetailScreen(
 
                 else -> {
                     val currentWord = word!!
-                    val dateFormat = SimpleDateFormat("dd MMM yyyy · HH:mm", Locale.getDefault())
+                    val dateFormat = DateFormat.getMediumDateFormat(context)
+                    val timeFormat = DateFormat.getTimeFormat(context)
                     val isOverdue = currentWord.nextPromptAt <= now
 
                     Column(
@@ -251,16 +261,16 @@ fun WordDetailScreen(
                                 label = "Correct",
                                 value = currentWord.totalCorrect.toString(),
                                 icon = Icons.Rounded.Check,
-                                iconTint = Sage,
-                                container = SageSoft,
+                                iconTint = wordForgeColors.correct,
+                                container = wordForgeColors.correctContainer,
                                 modifier = Modifier.weight(1f),
                             )
                             StatTile(
                                 label = "Incorrect",
                                 value = currentWord.totalIncorrect.toString(),
                                 icon = Icons.Rounded.Close,
-                                iconTint = ForgeOrangeDeep,
-                                container = ForgeOrangeSoft,
+                                iconTint = wordForgeColors.incorrect,
+                                container = wordForgeColors.incorrectContainer,
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -287,7 +297,8 @@ fun WordDetailScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
-                                text = dateFormat.format(Date(currentWord.createdAt)),
+                                text = "${dateFormat.format(Date(currentWord.createdAt))} · " +
+                                    timeFormat.format(Date(currentWord.createdAt)),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                             )
@@ -306,16 +317,25 @@ fun WordDetailScreen(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete word") },
             text = {
-                Text(
-                    "Delete \"${current?.word ?: ""}\"? This cannot be undone."
-                )
+                Text("Delete \"${current?.word ?: ""}\"?")
             },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteDialog = false
                     current?.let {
                         viewModel.deleteWord(it)
-                        onNavigateBack()
+                        scope.launch {
+                            val result = snackbarHostState.showSnackbar(
+                                message = "\"${it.word}\" deleted",
+                                actionLabel = "Undo",
+                                withDismissAction = true,
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                viewModel.restoreWord(it)
+                            } else {
+                                onNavigateBack()
+                            }
+                        }
                     }
                 }) {
                     Text("Delete", color = MaterialTheme.colorScheme.error)
@@ -349,7 +369,7 @@ private fun TopLabelsRow(
             color = MaterialTheme.colorScheme.primary,
         )
         Text(
-            text = if (isOverdue) "OVERDUE" else "NEXT · ${formatCompactDue(nextPromptAt, now)}",
+            text = if (isOverdue) "READY" else "NEXT · ${formatCompactDue(nextPromptAt, now)}",
             style = MaterialTheme.typography.labelMedium,
             color = if (isOverdue) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurfaceVariant,

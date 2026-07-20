@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.wordforge.domain.SpacedRepetition
-import com.wordforge.ui.theme.CreamTint
 import com.wordforge.ui.theme.TierColors
 
 @Composable
@@ -158,7 +157,7 @@ private fun TierIntervalsCard() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = CreamTint,
+        color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Column {
             for (tier in SpacedRepetition.MIN_TIER..SpacedRepetition.MAX_TIER) {

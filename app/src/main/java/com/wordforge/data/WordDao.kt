@@ -28,7 +28,7 @@ interface WordDao {
     @Query("DELETE FROM word")
     suspend fun deleteAll()
 
-    @Query("SELECT * FROM word WHERE nextPromptAt <= :currentTime")
+    @Query("SELECT * FROM word WHERE nextPromptAt <= :currentTime ORDER BY nextPromptAt ASC")
     suspend fun getAllForNextPrompting(currentTime: Long): List<Word>
 
     @Query("SELECT * FROM word")

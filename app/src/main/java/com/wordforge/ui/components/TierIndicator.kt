@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.wordforge.ui.theme.WordForgeTheme
@@ -20,16 +22,21 @@ import com.wordforge.ui.theme.WordForgeTheme
 @Composable
 fun TierIndicator(
     tier: Int,
+    modifier: Modifier = Modifier,
     total: Int = 8,
     color: Color = MaterialTheme.colorScheme.primary,
-    modifier: Modifier = Modifier,
 ) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(
+        modifier.semantics {
+            contentDescription = "Tier $tier of $total"
+        },
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         repeat(total) { i ->
             Box(
                 Modifier
                     .height(6.dp)
-                    .width(24.dp)
+                    .width(20.dp)
                     .clip(RoundedCornerShape(3.dp))
                     .background(if (i < tier) color else MaterialTheme.colorScheme.outline)
             )

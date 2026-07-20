@@ -1,7 +1,9 @@
 package com.wordforge.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -14,11 +16,17 @@ import com.wordforge.ui.screens.OverdueReviewScreen
 import com.wordforge.ui.screens.QuizScreen
 import com.wordforge.ui.screens.WordDetailScreen
 import com.wordforge.ui.screens.WordListScreen
+import com.wordforge.ui.theme.ThemeMode
 import com.wordforge.viewmodel.WordViewModel
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    shouldOfferNotifications: Boolean,
+    onNotificationEducationShown: () -> Unit,
+    onRequestNotificationPermission: () -> Unit,
     viewModel: WordViewModel = viewModel()
 ) {
     NavHost(
@@ -39,7 +47,9 @@ fun NavGraph(
                 },
                 onNavigateToOverdueReview = {
                     navController.navigate(Screen.OverdueReview.route)
-                }
+                },
+                themeMode = themeMode,
+                onThemeModeChange = onThemeModeChange
             )
         }
 
@@ -57,13 +67,18 @@ fun NavGraph(
         }
 
         composable(Screen.AddWord.route) {
+            val words by viewModel.allWords.collectAsStateWithLifecycle()
             AddWordScreen(
                 onAddWord = { word, meaning, randomlyFlip ->
                     viewModel.addWord(word, meaning, randomlyFlip)
                 },
                 onNavigateBack = {
                     navController.popBackStack()
-                }
+                },
+                existingWords = words.map { it.word },
+                shouldOfferNotifications = shouldOfferNotifications,
+                onNotificationEducationShown = onNotificationEducationShown,
+                onRequestNotificationPermission = onRequestNotificationPermission,
             )
         }
 

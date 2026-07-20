@@ -4,21 +4,28 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.SaveAlt
@@ -30,24 +37,31 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -59,9 +73,15 @@ import com.wordforge.ui.components.SparksLogo
 import com.wordforge.ui.components.WordCard
 import com.wordforge.ui.components.WordForgeFab
 import com.wordforge.ui.components.WordForgeSnackbarHost
+import com.wordforge.ui.theme.ThemeMode
 import com.wordforge.viewmodel.WordViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.Instant
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,13 +90,15 @@ fun WordListScreen(
     onNavigateToAddWord: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToHowItWorks: () -> Unit,
-    onNavigateToOverdueReview: () -> Unit
+    onNavigateToOverdueReview: () -> Unit,
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit
 ) {
-    val words by viewModel.allWords.collectAsState()
+    val words by viewModel.allWords.collectAsStateWithLifecycle()
 
     var showDeleteAllDialog1 by remember { mutableStateOf(false) }
-    var showDeleteAllDialog2 by remember { mutableStateOf(false) }
-    var wordToDelete by remember { mutableStateOf<Word?>(null) }
+    var showThemeDialog by remember { mutableStateOf(false) }
+    var importPreview by remember { mutableStateOf<WordViewModel.ImportPreview?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -89,8 +111,12 @@ fun WordListScreen(
         uri ?: return@rememberLauncherForActivityResult
         scope.launch {
             try {
-                val json = viewModel.exportToJson()
-                context.contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+                val json = withContext(Dispatchers.Default) { viewModel.exportToJson() }
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.openOutputStream(uri)?.use {
+                        it.write(json.toByteArray())
+                    }
+                }
                 snackbarHostState.showSnackbar("Exported ${words.size} words")
             } catch (t: Throwable) {
                 snackbarHostState.showSnackbar("Export failed: ${t.message ?: "unknown error"}")
@@ -104,11 +130,13 @@ fun WordListScreen(
         uri ?: return@rememberLauncherForActivityResult
         scope.launch {
             try {
-                val json = context.contentResolver.openInputStream(uri)
-                    ?.bufferedReader()?.use { it.readText() }
-                    ?: return@launch
-                val count = viewModel.importFromJson(json)
-                snackbarHostState.showSnackbar("Imported $count words")
+                val json = withContext(Dispatchers.IO) {
+                    context.contentResolver.openInputStream(uri)
+                        ?.bufferedReader()?.use { it.readText() }
+                } ?: return@launch
+                importPreview = withContext(Dispatchers.Default) {
+                    viewModel.previewImport(json)
+                }
             } catch (t: Throwable) {
                 snackbarHostState.showSnackbar("Import failed: ${t.message ?: "unknown error"}")
             }
@@ -116,10 +144,26 @@ fun WordListScreen(
     }
 
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(words) {
         while (true) {
-            delay(1000)
+            val untilNext = words.minOfOrNull { it.nextPromptAt - System.currentTimeMillis() }
+            delay(if (untilNext != null && untilNext <= 60 * 60 * 1000L) 1000L else 30_000L)
             now = System.currentTimeMillis()
+        }
+    }
+
+    val listState = rememberLazyListState()
+    val fabExpanded by remember { derivedStateOf { !listState.canScrollBackward } }
+
+    fun deleteWithUndo(word: Word) {
+        viewModel.deleteWord(word)
+        scope.launch {
+            val result = snackbarHostState.showSnackbar(
+                message = "\"${word.word}\" deleted",
+                actionLabel = "Undo",
+                withDismissAction = true,
+            )
+            if (result == SnackbarResult.ActionPerformed) viewModel.restoreWord(word)
         }
     }
 
@@ -137,7 +181,7 @@ fun WordListScreen(
                         if (words.isNotEmpty()) {
                             val totalLabel = if (words.size == 1) "1 word" else "${words.size} words"
                             val subtitle = if (overdueNow > 0)
-                                "$totalLabel · $overdueNow due now"
+                                "$totalLabel · $overdueNow ready"
                             else
                                 totalLabel
                             Text(
@@ -192,6 +236,17 @@ fun WordListScreen(
                                     importLauncher.launch(arrayOf("application/json"))
                                 }
                             )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("Theme: ${themeMode.label}") },
+                                leadingIcon = {
+                                    Icon(Icons.Rounded.DarkMode, contentDescription = null)
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    showThemeDialog = true
+                                }
+                            )
                             if (words.isNotEmpty()) {
                                 HorizontalDivider()
                                 DropdownMenuItem(
@@ -226,7 +281,7 @@ fun WordListScreen(
         },
         snackbarHost = { WordForgeSnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            WordForgeFab(onClick = onNavigateToAddWord)
+            WordForgeFab(onClick = onNavigateToAddWord, expanded = fabExpanded)
         }
     ) { innerPadding ->
         if (words.isEmpty()) {
@@ -238,8 +293,10 @@ fun WordListScreen(
         } else {
             val overdueCount = words.count { it.nextPromptAt <= now }
             val upcoming = words.filter { it.nextPromptAt > now }
+            val upcomingSections = groupUpcomingWords(upcoming, now)
 
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
@@ -256,24 +313,23 @@ fun WordListScreen(
                     }
                 }
 
-                if (upcoming.isNotEmpty()) {
-                    item {
+                upcomingSections.forEach { (section, sectionWords) ->
+                    item(key = "section_$section") {
                         Text(
-                            text = "Up next",
+                            text = section,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
                         )
                     }
 
-                    items(upcoming, key = { it.id }) { word ->
-                        WordCard(
-                            word = word.word,
-                            meaning = word.meaning,
-                            tier = word.currentTier,
-                            dueLabel = formatCompactDue(word.nextPromptAt, now),
+                    items(sectionWords, key = { it.id }) { word ->
+                        DismissibleWordCard(
+                            word = word,
+                            now = now,
                             onClick = { onNavigateToDetail(word.id) },
-                            onLongClick = { wordToDelete = word },
+                            onDelete = { deleteWithUndo(word) },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }
@@ -283,67 +339,220 @@ fun WordListScreen(
         }
     }
 
-    wordToDelete?.let { word ->
-        AlertDialog(
-            onDismissRequest = { wordToDelete = null },
-            title = { Text("Delete word") },
-            text = { Text("Delete \"${word.word}\"? This cannot be undone.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteWord(word)
-                    wordToDelete = null
-                }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { wordToDelete = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
     if (showDeleteAllDialog1) {
         AlertDialog(
             onDismissRequest = { showDeleteAllDialog1 = false },
             title = { Text("Delete all words") },
-            text = { Text("Are you sure you want to delete all ${words.size} words?") },
+            text = { Text("Permanently delete all ${words.size} words and their progress?") },
             confirmButton = {
-                TextButton(onClick = {
-                    showDeleteAllDialog1 = false
-                    showDeleteAllDialog2 = true
-                }) {
-                    Text("Yes, delete all", color = MaterialTheme.colorScheme.error)
+                TextButton(
+                    onClick = {
+                        viewModel.deleteAllWords()
+                        showDeleteAllDialog1 = false
+                    }
+                ) {
+                    Text("Delete everything", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteAllDialog1 = false }) {
-                    Text("Cancel")
+                Row {
+                    TextButton(
+                        onClick = {
+                            showDeleteAllDialog1 = false
+                            exportLauncher.launch("wordforge-backup.json")
+                        }
+                    ) {
+                        Text("Export backup")
+                    }
+                    TextButton(onClick = { showDeleteAllDialog1 = false }) {
+                        Text("Cancel")
+                    }
                 }
             }
         )
     }
 
-    if (showDeleteAllDialog2) {
+    importPreview?.let { preview ->
         AlertDialog(
-            onDismissRequest = { showDeleteAllDialog2 = false },
-            title = { Text("Are you really sure?") },
-            text = { Text("This will permanently delete all your words and progress. This cannot be undone.") },
+            onDismissRequest = { importPreview = null },
+            title = { Text("Import ${preview.totalCount} words?") },
+            text = {
+                Text(
+                    buildString {
+                        append("${preview.newCount} new · ${preview.updatedCount} existing updated")
+                        if (preview.updatedCount > 0) {
+                            append("\n\nMatching words and review progress will be replaced by the backup.")
+                        }
+                    }
+                )
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.deleteAllWords()
-                    showDeleteAllDialog2 = false
-                }) {
-                    Text("Delete everything", color = MaterialTheme.colorScheme.error)
+                TextButton(
+                    onClick = {
+                        importPreview = null
+                        scope.launch {
+                            try {
+                                val count = viewModel.commitImport(preview)
+                                snackbarHostState.showSnackbar("Imported $count words")
+                            } catch (t: Throwable) {
+                                snackbarHostState.showSnackbar(
+                                    "Import failed: ${t.message ?: "unknown error"}"
+                                )
+                            }
+                        }
+                    }
+                ) {
+                    Text("Import")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteAllDialog2 = false }) {
+                TextButton(onClick = { importPreview = null }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
+    }
+
+    if (showThemeDialog) {
+        ThemeModeDialog(
+            selectedThemeMode = themeMode,
+            onSelectThemeMode = { selectedThemeMode ->
+                onThemeModeChange(selectedThemeMode)
+            },
+            onDismiss = { showThemeDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun DismissibleWordCard(
+    word: Word,
+    now: Long,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val dismissState = rememberSwipeToDismissBoxState()
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) onDelete()
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier.clip(RoundedCornerShape(20.dp)),
+        enableDismissFromStartToEnd = false,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.DeleteOutline,
+                    contentDescription = "Delete ${word.word}",
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                )
+            }
+        },
+    ) {
+        WordCard(
+            word = word.word,
+            meaning = word.meaning,
+            tier = word.currentTier,
+            dueLabel = formatCompactDue(word.nextPromptAt, now),
+            onClick = onClick,
+            onDelete = onDelete,
+        )
+    }
+}
+
+internal fun groupUpcomingWords(
+    words: List<Word>,
+    now: Long,
+    zoneId: ZoneId = ZoneId.systemDefault(),
+): Map<String, List<Word>> {
+    val today = Instant.ofEpochMilli(now).atZone(zoneId).toLocalDate()
+    return words
+        .sortedBy { it.nextPromptAt }
+        .groupBy { word ->
+            val dueDate = Instant.ofEpochMilli(word.nextPromptAt).atZone(zoneId).toLocalDate()
+            when (ChronoUnit.DAYS.between(today, dueDate)) {
+                0L -> "Later today"
+                1L -> "Tomorrow"
+                in 2L..7L -> "This week"
+                else -> "Later"
+            }
+        }
+}
+
+@Composable
+private fun ThemeModeDialog(
+    selectedThemeMode: ThemeMode,
+    onSelectThemeMode: (ThemeMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choose theme") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                ThemeMode.entries.forEach { themeMode ->
+                    ThemeModeOption(
+                        themeMode = themeMode,
+                        selected = themeMode == selectedThemeMode,
+                        onClick = { onSelectThemeMode(themeMode) }
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Done")
+            }
+        }
+    )
+}
+
+@Composable
+private fun ThemeModeOption(
+    themeMode: ThemeMode,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer
+                else Color.Transparent
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 12.dp)
+        ) {
+            Text(
+                text = themeMode.label,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = themeMode.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -391,11 +600,11 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     }
 }
 
-// Compact mono-style due label: "overdue", "2d 14h", "5h 23m",
+// Compact mono-style due label: "ready", "2d 14h", "5h 23m",
 // "12m 04s", "37s". Two units max for legibility at small sizes.
 fun formatCompactDue(nextPromptAt: Long, now: Long): String {
     val diff = nextPromptAt - now
-    if (diff <= 0L) return "overdue"
+    if (diff <= 0L) return "ready"
 
     val totalSeconds = diff / 1000
     val days = totalSeconds / 86400

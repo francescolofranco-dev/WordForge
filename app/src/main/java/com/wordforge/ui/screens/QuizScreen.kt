@@ -74,7 +74,7 @@ fun QuizScreen(
                 word == null -> {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "This word no longer exists",
+                            text = "This item no longer exists",
                             style = MaterialTheme.typography.bodyLarge
                         )
                         Spacer(modifier = Modifier.height(16.dp))

@@ -18,7 +18,7 @@ import com.wordforge.ui.theme.WordForgeTheme
 fun WordForgeFab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Add word",
+    label: String = "Add item",
     expanded: Boolean = true,
 ) {
     ExtendedFloatingActionButton(

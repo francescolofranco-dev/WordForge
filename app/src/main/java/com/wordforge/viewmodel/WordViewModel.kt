@@ -3,6 +3,9 @@ package com.wordforge.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.wordforge.data.LearningItemDraft
+import com.wordforge.data.LearningItemType
+import com.wordforge.data.VerbConjugation
 import com.wordforge.data.Word
 import com.wordforge.data.WordDatabase
 import com.wordforge.data.WordRepository
@@ -39,11 +42,21 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
             )
     }
 
-    fun addWord(word: String, meaning: String, randomlyFlip: Boolean) {
+    fun addItem(draft: LearningItemDraft) {
         viewModelScope.launch {
-            val newWord = repository.addWord(word, meaning, randomlyFlip)
-            scheduleNotification(newWord)
+            val newItem = repository.addItem(draft)
+            scheduleNotification(newItem)
         }
+    }
+
+    fun addWord(word: String, meaning: String, randomlyFlip: Boolean) {
+        addItem(
+            LearningItemDraft(
+                term = word,
+                meaning = meaning,
+                randomlyFlip = randomlyFlip,
+            )
+        )
     }
 
     fun onAnswerCorrect(word: Word) {
@@ -124,10 +137,28 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
             o.put("totalIncorrect", w.totalIncorrect)
             o.put("currentStreak", w.currentStreak)
             o.put("randomlyFlip", w.randomlyFlip)
+            o.put("itemType", w.itemType.name)
+            val verb = w.verbConjugation
+            if (verb != null) {
+                o.put(
+                    "verbConjugation",
+                    JSONObject().apply {
+                        put("tense", verb.tense)
+                        put("yo", verb.yo)
+                        put("tu", verb.tu)
+                        put("elEllaUsted", verb.elEllaUsted)
+                        put("nosotros", verb.nosotros)
+                        put("vosotros", verb.vosotros)
+                        put("ellosEllasUstedes", verb.ellosEllasUstedes)
+                    }
+                )
+            } else {
+                o.put("verbConjugation", JSONObject.NULL)
+            }
             arr.put(o)
         }
         return JSONObject().apply {
-            put("version", 3)
+            put("version", 4)
             put("exportedAt", System.currentTimeMillis())
             put("count", words.size)
             put("words", arr)
@@ -142,15 +173,41 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun previewImport(json: String): ImportPreview {
         val root = JSONObject(json)
         val version = root.optInt("version", 1)
-        require(version in 1..3) { "Unsupported export version: $version" }
+        require(version in 1..4) { "Unsupported export version: $version" }
         val arr = root.getJSONArray("words")
         require(arr.length() <= MAX_IMPORT_WORDS) {
-            "This file contains too many words (${arr.length()})"
+            "This file contains too many items (${arr.length()})"
         }
         val list = ArrayList<Word>(arr.length())
         val seenIds = HashSet<String>(arr.length())
         for (i in 0 until arr.length()) {
             val o = arr.getJSONObject(i)
+            val itemType = if (o.has("itemType")) {
+                try {
+                    LearningItemType.valueOf(o.getString("itemType"))
+                } catch (_: IllegalArgumentException) {
+                    throw IllegalArgumentException("Item ${i + 1} has an unknown type")
+                }
+            } else {
+                LearningItemType.SIMPLE_WORD
+            }
+            val verbConjugation = if (itemType == LearningItemType.VERB_CONJUGATION) {
+                val verb = o.optJSONObject("verbConjugation")
+                    ?: throw IllegalArgumentException(
+                        "Item ${i + 1} has no conjugation data"
+                    )
+                VerbConjugation(
+                    tense = verb.getString("tense").trim(),
+                    yo = verb.getString("yo").trim(),
+                    tu = verb.getString("tu").trim(),
+                    elEllaUsted = verb.getString("elEllaUsted").trim(),
+                    nosotros = verb.getString("nosotros").trim(),
+                    vosotros = verb.getString("vosotros").trim(),
+                    ellosEllasUstedes = verb.getString("ellosEllasUstedes").trim(),
+                )
+            } else {
+                null
+            }
             val importedWord = Word(
                 id = o.getString("id"),
                 word = o.getString("word").trim(),
@@ -163,22 +220,30 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
                 totalIncorrect = o.getInt("totalIncorrect"),
                 currentStreak = if (o.has("currentStreak")) o.getInt("currentStreak") else 0,
                 randomlyFlip = if (o.has("randomlyFlip")) o.getBoolean("randomlyFlip") else true,
+                itemType = itemType,
+                verbConjugation = verbConjugation,
             )
-            require(importedWord.id.isNotBlank()) { "Word ${i + 1} has no id" }
-            require(seenIds.add(importedWord.id)) { "Duplicate word id at item ${i + 1}" }
-            require(importedWord.word.isNotBlank()) { "Word ${i + 1} has empty text" }
-            require(importedWord.meaning.isNotBlank()) { "Word ${i + 1} has an empty meaning" }
-            require(importedWord.currentTier in 0..8) { "Word ${i + 1} has an invalid tier" }
+            require(importedWord.id.isNotBlank()) { "Item ${i + 1} has no id" }
+            require(seenIds.add(importedWord.id)) { "Duplicate item id at item ${i + 1}" }
+            require(importedWord.word.isNotBlank()) { "Item ${i + 1} has empty text" }
+            require(importedWord.meaning.isNotBlank()) { "Item ${i + 1} has an empty meaning" }
+            require(importedWord.currentTier in 0..8) { "Item ${i + 1} has an invalid tier" }
             require(importedWord.nextPromptAt > 0L && importedWord.createdAt > 0L) {
-                "Word ${i + 1} has an invalid date"
+                "Item ${i + 1} has an invalid date"
             }
             require(importedWord.lastAnsweredAt == null || importedWord.lastAnsweredAt > 0L) {
-                "Word ${i + 1} has an invalid last-answer date"
+                "Item ${i + 1} has an invalid last-answer date"
             }
             require(importedWord.totalCorrect >= 0 && importedWord.totalIncorrect >= 0) {
-                "Word ${i + 1} has invalid answer totals"
+                "Item ${i + 1} has invalid answer totals"
             }
-            require(importedWord.currentStreak >= 0) { "Word ${i + 1} has an invalid streak" }
+            require(importedWord.currentStreak >= 0) { "Item ${i + 1} has an invalid streak" }
+            require(
+                importedWord.itemType != LearningItemType.VERB_CONJUGATION ||
+                    importedWord.verbConjugation?.isComplete == true
+            ) {
+                "Item ${i + 1} has an incomplete conjugation"
+            }
             list.add(importedWord)
         }
 

@@ -34,7 +34,7 @@ object ReviewNotification {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val title = if (overdueCount == 1) "1 word ready" else "$overdueCount words ready"
+        val title = if (overdueCount == 1) "1 item ready" else "$overdueCount items ready"
         val body = if (overdueCount == 1) {
             "A quick review will keep it fresh."
         } else {

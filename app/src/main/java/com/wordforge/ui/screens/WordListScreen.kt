@@ -67,6 +67,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.wordforge.R
+import com.wordforge.data.LearningItemType
 import com.wordforge.data.Word
 import com.wordforge.ui.components.OverdueCard
 import com.wordforge.ui.components.SparksLogo
@@ -117,7 +118,7 @@ fun WordListScreen(
                         it.write(json.toByteArray())
                     }
                 }
-                snackbarHostState.showSnackbar("Exported ${words.size} words")
+                snackbarHostState.showSnackbar("Exported ${words.size} items")
             } catch (t: Throwable) {
                 snackbarHostState.showSnackbar("Export failed: ${t.message ?: "unknown error"}")
             }
@@ -179,7 +180,7 @@ fun WordListScreen(
                             style = MaterialTheme.typography.headlineMedium,
                         )
                         if (words.isNotEmpty()) {
-                            val totalLabel = if (words.size == 1) "1 word" else "${words.size} words"
+                            val totalLabel = if (words.size == 1) "1 item" else "${words.size} items"
                             val subtitle = if (overdueNow > 0)
                                 "$totalLabel · $overdueNow ready"
                             else
@@ -217,7 +218,7 @@ fun WordListScreen(
                             onDismissRequest = { menuOpen = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Export words") },
+                                text = { Text("Export items") },
                                 leadingIcon = {
                                     Icon(Icons.Rounded.SaveAlt, contentDescription = null)
                                 },
@@ -227,7 +228,7 @@ fun WordListScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Import words") },
+                                text = { Text("Import items") },
                                 leadingIcon = {
                                     Icon(Icons.Rounded.FolderOpen, contentDescription = null)
                                 },
@@ -252,7 +253,7 @@ fun WordListScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "Delete all words",
+                                            "Delete all items",
                                             color = MaterialTheme.colorScheme.error
                                         )
                                     },
@@ -342,8 +343,8 @@ fun WordListScreen(
     if (showDeleteAllDialog1) {
         AlertDialog(
             onDismissRequest = { showDeleteAllDialog1 = false },
-            title = { Text("Delete all words") },
-            text = { Text("Permanently delete all ${words.size} words and their progress?") },
+            title = { Text("Delete all items") },
+            text = { Text("Permanently delete all ${words.size} items and their progress?") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -375,13 +376,13 @@ fun WordListScreen(
     importPreview?.let { preview ->
         AlertDialog(
             onDismissRequest = { importPreview = null },
-            title = { Text("Import ${preview.totalCount} words?") },
+            title = { Text("Import ${preview.totalCount} items?") },
             text = {
                 Text(
                     buildString {
                         append("${preview.newCount} new · ${preview.updatedCount} existing updated")
                         if (preview.updatedCount > 0) {
-                            append("\n\nMatching words and review progress will be replaced by the backup.")
+                            append("\n\nMatching items and review progress will be replaced by the backup.")
                         }
                     }
                 )
@@ -393,7 +394,7 @@ fun WordListScreen(
                         scope.launch {
                             try {
                                 val count = viewModel.commitImport(preview)
-                                snackbarHostState.showSnackbar("Imported $count words")
+                                snackbarHostState.showSnackbar("Imported $count items")
                             } catch (t: Throwable) {
                                 snackbarHostState.showSnackbar(
                                     "Import failed: ${t.message ?: "unknown error"}"
@@ -462,6 +463,11 @@ private fun DismissibleWordCard(
             meaning = word.meaning,
             tier = word.currentTier,
             dueLabel = formatCompactDue(word.nextPromptAt, now),
+            typeLabel = if (word.itemType == LearningItemType.VERB_CONJUGATION) {
+                "VERB · ${word.verbConjugation?.tense.orEmpty().uppercase()}"
+            } else {
+                null
+            },
             onClick = onClick,
             onDelete = onDelete,
         )
@@ -590,7 +596,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Add your first word to start hammering it into long-term memory.",
+                text = "Add your first item to start hammering it into long-term memory.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

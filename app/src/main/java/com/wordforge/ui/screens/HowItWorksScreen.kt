@@ -145,7 +145,14 @@ private fun HeroExplainer() {
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "WordForge schedules each word at growing intervals — short at first, then longer as the word sticks. Get one wrong and it drops back a tier so you see it sooner.",
+                text = "WordForge schedules each item at growing intervals — short at first, then longer as it sticks. Get one wrong and it drops back a tier so you see it sooner.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = "Words reveal one answer. Verb conjugations reveal all six Spanish person forms one by one, then receive one score for the whole tense.",
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

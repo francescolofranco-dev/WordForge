@@ -79,7 +79,7 @@ private fun streakSubtitle(streak: Int): String = when {
         else "$remaining more to unlock a steady forge."
     }
     streak == STEADY_FORGE_THRESHOLD -> "Steady forge unlocked."
-    else -> "This word is holding strong."
+    else -> "This item is holding strong."
 }
 
 private const val STEADY_FORGE_THRESHOLD = 5

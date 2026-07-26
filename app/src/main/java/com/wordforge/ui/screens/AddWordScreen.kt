@@ -8,37 +8,55 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.wordforge.data.LearningItemDraft
+import com.wordforge.data.LearningItemType
+import com.wordforge.data.Word
 
 @Composable
 fun AddWordScreen(
-    onAddWord: (String, String, Boolean) -> Unit,
+    onAddItem: (LearningItemDraft) -> Unit,
     onNavigateBack: () -> Unit,
-    existingWords: List<String>,
+    existingItems: List<Word>,
     shouldOfferNotifications: Boolean,
     onNotificationEducationShown: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
 ) {
     var showNotificationEducation by remember { mutableStateOf(false) }
 
-    WordFormScaffold(
-        topBarLabel = "NEW WORD",
+    LearningItemFormScaffold(
+        topBarLabel = "NEW ITEM",
         headline = "What do you want to learn?",
-        subtitle = "A single word, phrase, or expression in any language.",
+        subtitle = "Add a word or practise one complete Spanish verb tense.",
         submitLabel = "Add to forge",
         clearAfterSubmit = true,
-        successMessage = "Word added!",
+        successMessage = "Item added!",
         autoFocus = true,
         onNavigateBack = onNavigateBack,
-        onSubmit = { word, meaning, randomlyFlip ->
-            onAddWord(word, meaning, randomlyFlip)
+        onSubmit = { draft ->
+            onAddItem(draft)
             if (shouldOfferNotifications) {
                 onNotificationEducationShown()
                 showNotificationEducation = true
             }
         },
-        wordWarning = { candidate ->
-            if (existingWords.any { it.equals(candidate.trim(), ignoreCase = true) }) {
-                "This word is already in your forge"
+        itemWarning = { candidate ->
+            val duplicate = existingItems.any { existing ->
+                existing.itemType == candidate.type &&
+                    existing.word.equals(candidate.term.trim(), ignoreCase = true) &&
+                    (
+                        candidate.type != LearningItemType.VERB_CONJUGATION ||
+                            existing.verbConjugation?.tense.equals(
+                                candidate.verbConjugation?.tense?.trim(),
+                                ignoreCase = true,
+                            )
+                        )
+            }
+            if (duplicate) {
+                if (candidate.type == LearningItemType.VERB_CONJUGATION) {
+                    "This verb and tense are already in your forge"
+                } else {
+                    "This word is already in your forge"
+                }
             } else {
                 null
             }
@@ -48,7 +66,7 @@ fun AddWordScreen(
     if (showNotificationEducation) {
         AlertDialog(
             onDismissRequest = { showNotificationEducation = false },
-            title = { Text("Know when a word is ready") },
+            title = { Text("Know when an item is ready") },
             text = {
                 Text("WordForge can send one quiet summary when reviews are ready. You can change this anytime in Android settings.")
             },

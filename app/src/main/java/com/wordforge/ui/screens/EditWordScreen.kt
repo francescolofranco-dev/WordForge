@@ -13,6 +13,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.wordforge.data.Word
+import com.wordforge.data.toDraft
+import com.wordforge.data.withContent
 import com.wordforge.viewmodel.WordViewModel
 
 @Composable
@@ -29,7 +31,7 @@ fun EditWordScreen(
         isLoading = false
     }
 
-    // Only compose the form once the word has loaded, so WordFormScaffold
+    // Only compose the form once the item has loaded, so the form
     // captures the real initial values on its first composition.
     val current = word
     if (current == null) {
@@ -44,23 +46,16 @@ fun EditWordScreen(
         return
     }
 
-    WordFormScaffold(
-        topBarLabel = "EDIT WORD",
-        headline = "Refine this word",
-        subtitle = "Update the word, its meaning, or how it shows up in quizzes.",
+    LearningItemFormScaffold(
+        topBarLabel = "EDIT ITEM",
+        headline = "Refine this item",
+        subtitle = "Update its content or how it appears during review.",
         submitLabel = "Save changes",
-        initialWord = current.word,
-        initialMeaning = current.meaning,
-        initialRandomlyFlip = current.randomlyFlip,
+        initialDraft = current.toDraft(),
+        allowTypeSelection = false,
         onNavigateBack = onNavigateBack,
-        onSubmit = { newWord, newMeaning, newFlip ->
-            viewModel.updateWord(
-                current.copy(
-                    word = newWord,
-                    meaning = newMeaning,
-                    randomlyFlip = newFlip,
-                )
-            )
+        onSubmit = { draft ->
+            viewModel.updateWord(current.withContent(draft))
             onNavigateBack()
         },
     )

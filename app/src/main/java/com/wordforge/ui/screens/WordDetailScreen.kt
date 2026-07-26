@@ -73,6 +73,8 @@ import androidx.compose.ui.unit.dp
 import java.util.Date
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.wordforge.data.LearningItemType
+import com.wordforge.data.VerbConjugation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,7 +145,7 @@ fun WordDetailScreen(
                                 onDismissRequest = { menuOpen = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Edit word") },
+                                    text = { Text("Edit item") },
                                     leadingIcon = {
                                         Icon(
                                             Icons.Rounded.Edit,
@@ -158,7 +160,7 @@ fun WordDetailScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "Delete word",
+                                            "Delete item",
                                             color = MaterialTheme.colorScheme.error
                                         )
                                     },
@@ -201,7 +203,7 @@ fun WordDetailScreen(
 
                 word == null -> {
                     Text(
-                        text = "Word not found",
+                        text = "Item not found",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.align(Alignment.Center)
                     )
@@ -234,17 +236,38 @@ fun WordDetailScreen(
                             color = MaterialTheme.colorScheme.onBackground,
                         )
 
+                        if (currentWord.itemType == LearningItemType.VERB_CONJUGATION) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            VerbTypeBadge(
+                                tense = currentWord.verbConjugation?.tense.orEmpty()
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(18.dp))
 
                         TierIndicator(tier = currentWord.currentTier)
 
                         Spacer(modifier = Modifier.height(28.dp))
 
-                        RevealCard(
-                            meaning = currentWord.meaning,
-                            revealed = meaningRevealed,
-                            onToggle = { meaningRevealed = !meaningRevealed },
-                        )
+                        when (currentWord.itemType) {
+                            LearningItemType.SIMPLE_WORD -> {
+                                RevealCard(
+                                    meaning = currentWord.meaning,
+                                    revealed = meaningRevealed,
+                                    onToggle = { meaningRevealed = !meaningRevealed },
+                                )
+                            }
+                            LearningItemType.VERB_CONJUGATION -> {
+                                currentWord.verbConjugation?.let { conjugation ->
+                                    VerbConjugationRevealCard(
+                                        meaning = currentWord.meaning,
+                                        conjugation = conjugation,
+                                        revealed = meaningRevealed,
+                                        onToggle = { meaningRevealed = !meaningRevealed },
+                                    )
+                                }
+                            }
+                        }
 
                         if (isOverdue) {
                             Spacer(modifier = Modifier.height(16.dp))
@@ -315,7 +338,7 @@ fun WordDetailScreen(
         val current = word
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete word") },
+            title = { Text("Delete item") },
             text = {
                 Text("Delete \"${current?.word ?: ""}\"?")
             },
@@ -436,6 +459,110 @@ private fun RevealCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VerbTypeBadge(tense: String) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Text(
+            text = "VERB · ${tense.uppercase()}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+        )
+    }
+}
+
+@Composable
+private fun VerbConjugationRevealCard(
+    meaning: String,
+    conjugation: VerbConjugation,
+    revealed: Boolean,
+    onToggle: () -> Unit,
+) {
+    Surface(
+        onClick = onToggle,
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (revealed) {
+                            Icons.Rounded.VisibilityOff
+                        } else {
+                            Icons.Rounded.Visibility
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = if (revealed) {
+                            meaning
+                        } else {
+                            "Tap to reveal conjugation"
+                        },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (revealed) "Tap to hide." else conjugation.tense,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                    )
+                }
+            }
+
+            if (revealed) {
+                Spacer(modifier = Modifier.height(18.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.15f)
+                )
+                conjugation.rows().forEach { row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = row.person,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = row.form,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        )
+                    }
                 }
             }
         }

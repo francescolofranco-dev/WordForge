@@ -64,7 +64,7 @@ fun OverdueCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = if (count == 1) "1 word ready" else "$count words ready",
+                    text = if (count == 1) "1 item ready" else "$count items ready",
                     style = MaterialTheme.typography.headlineMedium,
                 )
                 Text(

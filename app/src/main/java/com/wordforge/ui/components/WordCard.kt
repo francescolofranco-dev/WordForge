@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DropdownMenu
@@ -40,6 +41,7 @@ fun WordCard(
     dueLabel: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    typeLabel: String? = null,
     onLongClick: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
 ) {
@@ -63,7 +65,29 @@ fun WordCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TierIndicator(tier = tier)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    TierIndicator(tier = tier)
+                    if (typeLabel != null) {
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                        ) {
+                            Text(
+                                text = typeLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier
+                                    .widthIn(max = 132.dp)
+                                    .padding(horizontal = 9.dp, vertical = 5.dp),
+                            )
+                        }
+                    }
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = dueLabel,
@@ -73,14 +97,14 @@ fun WordCard(
                     if (onDelete != null) {
                         Box {
                             IconButton(onClick = { menuOpen = true }) {
-                                Icon(Icons.Rounded.MoreVert, contentDescription = "Word actions")
+                                Icon(Icons.Rounded.MoreVert, contentDescription = "Item actions")
                             }
                             DropdownMenu(
                                 expanded = menuOpen,
                                 onDismissRequest = { menuOpen = false },
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Delete word") },
+                                    text = { Text("Delete item") },
                                     leadingIcon = {
                                         Icon(Icons.Rounded.DeleteOutline, contentDescription = null)
                                     },

@@ -69,13 +69,11 @@ fun NavGraph(
         composable(Screen.AddWord.route) {
             val words by viewModel.allWords.collectAsStateWithLifecycle()
             AddWordScreen(
-                onAddWord = { word, meaning, randomlyFlip ->
-                    viewModel.addWord(word, meaning, randomlyFlip)
-                },
+                onAddItem = viewModel::addItem,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
-                existingWords = words.map { it.word },
+                existingItems = words,
                 shouldOfferNotifications = shouldOfferNotifications,
                 onNotificationEducationShown = onNotificationEducationShown,
                 onRequestNotificationPermission = onRequestNotificationPermission,

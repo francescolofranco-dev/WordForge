@@ -25,7 +25,7 @@ class WordForgeApp : Application() {
             "Review reminders",
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "A summary when words are ready to review"
+            description = "A summary when learning items are ready to review"
         }
 
         val notificationManager = getSystemService(NotificationManager::class.java)

@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.wordforge.data.LearningItemType
 import com.wordforge.data.Word
 import com.wordforge.domain.SpacedRepetition
 import com.wordforge.ui.theme.LocalWordForgeColors
@@ -64,6 +65,18 @@ fun QuizContent(
     modifier: Modifier = Modifier,
     advanceLabel: String = "Done",
 ) {
+    if (word.itemType == LearningItemType.VERB_CONJUGATION) {
+        VerbConjugationQuizContent(
+            word = word,
+            onCorrect = onCorrect,
+            onIncorrect = onIncorrect,
+            onAdvance = onAdvance,
+            modifier = modifier,
+            advanceLabel = advanceLabel,
+        )
+        return
+    }
+
     var revealed by rememberSaveable(word.id) { mutableStateOf(false) }
     var answered by rememberSaveable(word.id) { mutableStateOf(false) }
     var wasCorrect by rememberSaveable(word.id) { mutableStateOf<Boolean?>(null) }

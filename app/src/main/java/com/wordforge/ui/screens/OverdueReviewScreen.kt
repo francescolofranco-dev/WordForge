@@ -162,7 +162,7 @@ fun OverdueReviewScreen(
                                 onCorrect = { viewModel.onAnswerCorrect(reviewWord) },
                                 onIncorrect = { viewModel.onAnswerIncorrect(reviewWord) },
                                 onAdvance = { index++ },
-                                advanceLabel = if (isLast) "Finish review" else "Next word",
+                                advanceLabel = if (isLast) "Finish review" else "Next item",
                             )
                         }
                     }
@@ -175,7 +175,7 @@ fun OverdueReviewScreen(
         AlertDialog(
             onDismissRequest = { showExitDialog = false },
             title = { Text("Leave this review?") },
-            text = { Text("Your answers are saved. You can continue the remaining words later.") },
+            text = { Text("Your answers are saved. You can continue the remaining items later.") },
             confirmButton = {
                 TextButton(onClick = onFinished) { Text("Leave review") }
             },
@@ -203,7 +203,7 @@ private fun NothingToReview(onFinished: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "All your words are still on schedule.",
+            text = "All your items are still on schedule.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -253,7 +253,7 @@ private fun AllDone(reviewed: Int, onFinished: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = if (reviewed == 1) "Reviewed 1 word." else "Reviewed $reviewed words.",
+            text = if (reviewed == 1) "Reviewed 1 item." else "Reviewed $reviewed items.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

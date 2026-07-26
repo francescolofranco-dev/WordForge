@@ -38,21 +38,35 @@ class WordRepository(private val wordDao: WordDao) {
     }
 
     /**
-     * Creates a new word and inserts it into the database.
-     * Returns the created Word so the caller can schedule a notification.
+     * Creates a type-aware learning item and inserts it into the database.
+     * Returns the persisted item so the caller can schedule a notification.
      */
-    suspend fun addWord(word: String, meaning: String, randomlyFlip: Boolean): Word {
+    suspend fun addItem(draft: LearningItemDraft): Word {
+        val normalized = draft.normalized()
+        require(normalized.isComplete) { "Learning item is incomplete" }
         val currentTime = System.currentTimeMillis()
         val newWord = Word(
-            word = word,
-            meaning = meaning,
+            word = normalized.term,
+            meaning = normalized.meaning,
             createdAt = currentTime,
             nextPromptAt = currentTime + SpacedRepetition.nextDelayMs(0),
-            randomlyFlip = randomlyFlip,
+            randomlyFlip = normalized.randomlyFlip,
+            itemType = normalized.type,
+            verbConjugation = normalized.verbConjugation,
         )
         wordDao.insert(newWord)
         return newWord
     }
+
+    /** Compatibility wrapper for callers that still create a simple word. */
+    suspend fun addWord(word: String, meaning: String, randomlyFlip: Boolean): Word =
+        addItem(
+            LearningItemDraft(
+                term = word,
+                meaning = meaning,
+                randomlyFlip = randomlyFlip,
+            )
+        )
 
     /**
      * Updates the word after a correct answer.

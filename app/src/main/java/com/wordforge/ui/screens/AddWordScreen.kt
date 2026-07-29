@@ -68,7 +68,7 @@ fun AddWordScreen(
             onDismissRequest = { showNotificationEducation = false },
             title = { Text("Know when an item is ready") },
             text = {
-                Text("WordForge can send one quiet summary when reviews are ready. You can change this anytime in Android settings.")
+                Text("WordForge can send one grouped reminder for everything ready to review. You can choose how often from the app menu.")
             },
             confirmButton = {
                 TextButton(

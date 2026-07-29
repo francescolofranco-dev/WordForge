@@ -18,12 +18,16 @@ import com.wordforge.ui.screens.WordDetailScreen
 import com.wordforge.ui.screens.WordListScreen
 import com.wordforge.ui.theme.ThemeMode
 import com.wordforge.viewmodel.WordViewModel
+import com.wordforge.data.ReminderFrequency
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    reminderFrequency: ReminderFrequency,
+    onReminderFrequencyChange: (ReminderFrequency) -> Unit,
+    notificationsGranted: Boolean,
     shouldOfferNotifications: Boolean,
     onNotificationEducationShown: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
@@ -49,7 +53,11 @@ fun NavGraph(
                     navController.navigate(Screen.OverdueReview.route)
                 },
                 themeMode = themeMode,
-                onThemeModeChange = onThemeModeChange
+                onThemeModeChange = onThemeModeChange,
+                reminderFrequency = reminderFrequency,
+                onReminderFrequencyChange = onReminderFrequencyChange,
+                notificationsGranted = notificationsGranted,
+                onRequestNotificationPermission = onRequestNotificationPermission,
             )
         }
 

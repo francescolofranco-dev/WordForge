@@ -3,7 +3,7 @@ package com.wordforge.data
 import android.content.Context
 import androidx.core.content.edit
 
-/** Stores whether the app has explained why review notifications are useful. */
+/** Stores review-notification education and scheduling preferences. */
 class NotificationPreferenceStore(context: Context) {
     private val preferences = context.getSharedPreferences(
         "wordforge_notification_preferences",
@@ -16,7 +16,21 @@ class NotificationPreferenceStore(context: Context) {
             preferences.edit { putBoolean(KEY_HAS_SHOWN_EDUCATION, value) }
         }
 
+    var reminderFrequency: ReminderFrequency
+        get() = ReminderFrequency.fromStoredCount(
+            preferences.getInt(
+                KEY_DAILY_REMINDER_COUNT,
+                ReminderFrequency.ONCE.notificationsPerDay,
+            )
+        )
+        set(value) {
+            preferences.edit {
+                putInt(KEY_DAILY_REMINDER_COUNT, value.notificationsPerDay)
+            }
+        }
+
     private companion object {
         const val KEY_HAS_SHOWN_EDUCATION = "has_shown_education"
+        const val KEY_DAILY_REMINDER_COUNT = "daily_reminder_count"
     }
 }

@@ -44,8 +44,7 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addItem(draft: LearningItemDraft) {
         viewModelScope.launch {
-            val newItem = repository.addItem(draft)
-            scheduleNotification(newItem)
+            repository.addItem(draft)
         }
     }
 
@@ -61,30 +60,29 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onAnswerCorrect(word: Word) {
         viewModelScope.launch {
-            val updatedWord = repository.onAnswerCorrect(word)
-            scheduleNotification(updatedWord)
+            repository.onAnswerCorrect(word)
+            NotificationScheduler.cancelDisplayedSummary(getApplication())
         }
     }
 
     fun onAnswerIncorrect(word: Word) {
         viewModelScope.launch {
-            val updatedWord = repository.onAnswerIncorrect(word)
-            scheduleNotification(updatedWord)
+            repository.onAnswerIncorrect(word)
+            NotificationScheduler.cancelDisplayedSummary(getApplication())
         }
     }
 
     fun deleteWord(word: Word) {
         viewModelScope.launch {
             repository.delete(word)
-            NotificationScheduler.cancel(getApplication(), word.id)
-            NotificationScheduler.refreshSummary(getApplication())
+            NotificationScheduler.cancelDisplayedSummary(getApplication())
         }
     }
 
     fun restoreWord(word: Word) {
         viewModelScope.launch {
             repository.upsertAll(listOf(word))
-            scheduleAccordingToDueTime(word)
+            NotificationScheduler.cancelDisplayedSummary(getApplication())
         }
     }
 
@@ -96,15 +94,14 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
     fun updateWord(word: Word) {
         viewModelScope.launch {
             repository.update(word)
+            NotificationScheduler.cancelDisplayedSummary(getApplication())
         }
     }
 
     fun deleteAllWords() {
         viewModelScope.launch {
-            val wordIds = repository.getAllOnce().map { it.id }
             repository.deleteAll()
-            // Leave the unique daily catch-up work intact; only word work belongs here.
-            NotificationScheduler.cancelAll(getApplication(), wordIds)
+            NotificationScheduler.cancelDisplayedSummary(getApplication())
         }
     }
 
@@ -259,37 +256,12 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun commitImport(preview: ImportPreview): Int {
         val list = preview.words
         repository.upsertAll(list)
-        val now = System.currentTimeMillis()
-        list.forEach { word ->
-            if (word.nextPromptAt > now) {
-                scheduleNotification(word)
-            } else {
-                NotificationScheduler.cancel(getApplication(), word.id)
-            }
-        }
-        NotificationScheduler.refreshSummary(getApplication())
+        NotificationScheduler.cancelDisplayedSummary(getApplication())
         return list.size
     }
 
     /** Kept as a small compatibility wrapper for callers outside the UI. */
     suspend fun importFromJson(json: String): Int = commitImport(previewImport(json))
-
-    private fun scheduleNotification(word: Word) {
-        val delayMs = (word.nextPromptAt - System.currentTimeMillis()).coerceAtLeast(0)
-        NotificationScheduler.schedule(
-            context = getApplication(),
-            wordId = word.id,
-            delayMs = delayMs
-        )
-    }
-
-    private fun scheduleAccordingToDueTime(word: Word) {
-        if (word.nextPromptAt > System.currentTimeMillis()) {
-            scheduleNotification(word)
-        } else {
-            NotificationScheduler.refreshSummary(getApplication())
-        }
-    }
 
     private companion object {
         const val MAX_IMPORT_WORDS = 50_000

@@ -9,6 +9,8 @@ import androidx.core.app.NotificationManagerCompat
 import com.wordforge.MainActivity
 import com.wordforge.R
 import com.wordforge.WordForgeApp
+import com.wordforge.data.LearningItemType
+import com.wordforge.data.Word
 
 /** Builds the single summary notification shared by all due-word workers. */
 object ReviewNotification {
@@ -16,11 +18,12 @@ object ReviewNotification {
     const val EXTRA_OPEN_REVIEW = "openOverdueReview"
 
     @SuppressLint("MissingPermission")
-    fun show(context: Context, overdueCount: Int) {
-        if (overdueCount <= 0) {
+    fun show(context: Context, overdueItems: List<Word>) {
+        if (overdueItems.isEmpty()) {
             cancel(context)
             return
         }
+        val overdueCount = overdueItems.size
 
         val intent = Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
@@ -36,9 +39,21 @@ object ReviewNotification {
         )
         val title = if (overdueCount == 1) "1 item ready" else "$overdueCount items ready"
         val body = if (overdueCount == 1) {
-            "A quick review will keep it fresh."
+            overdueItems.single().notificationLabel()
         } else {
-            "Review them together in one short session."
+            overdueItems
+                .take(3)
+                .joinToString(" · ") { it.notificationLabel() }
+        }
+        val inboxStyle = NotificationCompat.InboxStyle()
+            .setBigContentTitle(title)
+        overdueItems.take(MAX_INBOX_ITEMS).forEach { item ->
+            inboxStyle.addLine(item.notificationLabel())
+        }
+        if (overdueCount > MAX_INBOX_ITEMS) {
+            inboxStyle.setSummaryText("+${overdueCount - MAX_INBOX_ITEMS} more")
+        } else {
+            inboxStyle.setSummaryText("Ready to review")
         }
 
         val notification = NotificationCompat.Builder(
@@ -48,17 +63,32 @@ object ReviewNotification {
             .setSmallIcon(R.drawable.ic_stat_wordforge)
             .setContentTitle(title)
             .setContentText(body)
+            .setStyle(inboxStyle)
             .setNumber(overdueCount)
-            .setOnlyAlertOnce(true)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setOnlyAlertOnce(false)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        val manager = NotificationManagerCompat.from(context)
+        // Replace the prior summary as a fresh event so every configured slot
+        // can alert instead of silently updating an existing notification.
+        manager.cancel(NOTIFICATION_ID)
+        manager.notify(NOTIFICATION_ID, notification)
     }
 
     fun cancel(context: Context) {
         NotificationManagerCompat.from(context).cancel(NOTIFICATION_ID)
     }
+
+    private fun Word.notificationLabel(): String =
+        if (itemType == LearningItemType.VERB_CONJUGATION) {
+            "$word · ${verbConjugation?.tense.orEmpty()}"
+        } else {
+            word
+        }
+
+    private const val MAX_INBOX_ITEMS = 5
 }

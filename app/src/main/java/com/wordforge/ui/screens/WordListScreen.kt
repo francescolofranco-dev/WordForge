@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.SaveAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -68,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.wordforge.R
 import com.wordforge.data.LearningItemType
+import com.wordforge.data.ReminderFrequency
 import com.wordforge.data.Word
 import com.wordforge.ui.components.OverdueCard
 import com.wordforge.ui.components.SparksLogo
@@ -93,12 +95,17 @@ fun WordListScreen(
     onNavigateToHowItWorks: () -> Unit,
     onNavigateToOverdueReview: () -> Unit,
     themeMode: ThemeMode,
-    onThemeModeChange: (ThemeMode) -> Unit
+    onThemeModeChange: (ThemeMode) -> Unit,
+    reminderFrequency: ReminderFrequency,
+    onReminderFrequencyChange: (ReminderFrequency) -> Unit,
+    notificationsGranted: Boolean,
+    onRequestNotificationPermission: () -> Unit,
 ) {
     val words by viewModel.allWords.collectAsStateWithLifecycle()
 
     var showDeleteAllDialog1 by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showReminderFrequencyDialog by remember { mutableStateOf(false) }
     var importPreview by remember { mutableStateOf<WordViewModel.ImportPreview?>(null) }
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -246,6 +253,32 @@ fun WordListScreen(
                                 onClick = {
                                     menuOpen = false
                                     showThemeDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text("Review reminders")
+                                        Text(
+                                            text = if (notificationsGranted) {
+                                                reminderFrequency.shortLabel()
+                                            } else {
+                                                "${reminderFrequency.shortLabel()} · permission needed"
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Rounded.NotificationsActive,
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    showReminderFrequencyDialog = true
                                 }
                             )
                             if (words.isNotEmpty()) {
@@ -423,6 +456,16 @@ fun WordListScreen(
             onDismiss = { showThemeDialog = false }
         )
     }
+
+    if (showReminderFrequencyDialog) {
+        ReminderFrequencyDialog(
+            selectedFrequency = reminderFrequency,
+            notificationsGranted = notificationsGranted,
+            onSelectFrequency = onReminderFrequencyChange,
+            onRequestNotificationPermission = onRequestNotificationPermission,
+            onDismiss = { showReminderFrequencyDialog = false },
+        )
+    }
 }
 
 @Composable
@@ -561,6 +604,123 @@ private fun ThemeModeOption(
         }
     }
 }
+
+@Composable
+private fun ReminderFrequencyDialog(
+    selectedFrequency: ReminderFrequency,
+    notificationsGranted: Boolean,
+    onSelectFrequency: (ReminderFrequency) -> Unit,
+    onRequestNotificationPermission: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var pendingFrequency by remember(selectedFrequency) {
+        mutableStateOf(selectedFrequency)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Review reminders") },
+        text = {
+            Column {
+                Text(
+                    text = "Choose how many times per day WordForge may remind you. Each reminder groups every item that is overdue at that time.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                ReminderFrequency.entries.forEach { frequency ->
+                    ReminderFrequencyOption(
+                        frequency = frequency,
+                        selected = frequency == pendingFrequency,
+                        onClick = { pendingFrequency = frequency },
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Times are approximate because Android may delay background alarms during battery saving.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSelectFrequency(pendingFrequency)
+                    onDismiss()
+                    if (!notificationsGranted) onRequestNotificationPermission()
+                }
+            ) {
+                Text(if (notificationsGranted) "Done" else "Allow notifications")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
+}
+
+@Composable
+private fun ReminderFrequencyOption(
+    frequency: ReminderFrequency,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primaryContainer
+                else Color.Transparent
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 12.dp),
+        ) {
+            Text(
+                text = frequency.longLabel(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = frequency.scheduleLabel(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+private fun ReminderFrequency.shortLabel(): String = when (this) {
+    ReminderFrequency.ONCE -> "Once daily"
+    ReminderFrequency.TWICE -> "Twice daily"
+    ReminderFrequency.THREE_TIMES -> "3 times daily"
+    ReminderFrequency.FIVE_TIMES -> "5 times daily"
+}
+
+private fun ReminderFrequency.longLabel(): String = when (this) {
+    ReminderFrequency.ONCE -> "Once per day"
+    ReminderFrequency.TWICE -> "Twice per day"
+    ReminderFrequency.THREE_TIMES -> "3 times per day"
+    ReminderFrequency.FIVE_TIMES -> "5 times per day"
+}
+
+private fun ReminderFrequency.scheduleLabel(): String =
+    "Around " + slotHours.joinToString(" · ") { hour ->
+        "${hour.toString().padStart(2, '0')}:00"
+    }
 
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {

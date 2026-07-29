@@ -3,29 +3,37 @@ package com.wordforge
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import com.wordforge.data.NotificationPreferenceStore
 import com.wordforge.notification.NotificationScheduler
 
 class WordForgeApp : Application() {
 
     companion object {
-        // A new channel id lets existing installs receive the quieter summary defaults;
-        // Android does not allow an app to lower an already-created channel's importance.
-        const val NOTIFICATION_CHANNEL_ID = "wordforge_review_summaries"
+        // Channel importance is immutable after creation. A new id upgrades
+        // existing installs from the previous default channel to heads-up
+        // review reminders while still leaving final control to the user.
+        const val NOTIFICATION_CHANNEL_ID = "wordforge_review_alerts_v2"
     }
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        NotificationScheduler.scheduleDailyCatchUp(this)
+        NotificationScheduler.cancelLegacySchedules(this)
+        NotificationScheduler.ensureScheduled(
+            this,
+            NotificationPreferenceStore(this).reminderFrequency,
+        )
     }
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             NOTIFICATION_CHANNEL_ID,
             "Review reminders",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "A summary when learning items are ready to review"
+            description = "Grouped reminders when learning items are ready to review"
+            enableVibration(true)
+            setShowBadge(true)
         }
 
         val notificationManager = getSystemService(NotificationManager::class.java)

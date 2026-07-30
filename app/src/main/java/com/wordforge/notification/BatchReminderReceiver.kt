@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Wakes for one configured slot, schedules the next slot, and posts a single
- * notification containing every item that is overdue at that moment.
+ * content-free notification with the number of items overdue at that moment.
  */
 class BatchReminderReceiver : BroadcastReceiver() {
 

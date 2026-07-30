@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteSweep
-import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.MoreVert
@@ -46,9 +45,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -375,7 +371,7 @@ fun WordListScreen(
                     }
 
                     items(sectionWords, key = { it.id }) { word ->
-                        DismissibleWordCard(
+                        UpcomingWordCard(
                             word = word,
                             now = now,
                             onClick = { onNavigateToDetail(word.id) },
@@ -532,52 +528,27 @@ private fun Context.appVersionName(): String {
 }
 
 @Composable
-private fun DismissibleWordCard(
+private fun UpcomingWordCard(
     word: Word,
     now: Long,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val dismissState = rememberSwipeToDismissBoxState()
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) onDelete()
-    }
-
-    SwipeToDismissBox(
-        state = dismissState,
-        modifier = modifier.clip(RoundedCornerShape(20.dp)),
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.CenterEnd,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.DeleteOutline,
-                    contentDescription = "Delete ${word.word}",
-                    tint = MaterialTheme.colorScheme.onErrorContainer,
-                )
-            }
+    WordCard(
+        word = word.word,
+        meaning = word.meaning,
+        tier = word.currentTier,
+        dueLabel = formatCompactDue(word.nextPromptAt, now),
+        typeLabel = if (word.itemType == LearningItemType.VERB_CONJUGATION) {
+            "VERB · ${word.verbConjugation?.tense.orEmpty().uppercase()}"
+        } else {
+            null
         },
-    ) {
-        WordCard(
-            word = word.word,
-            meaning = word.meaning,
-            tier = word.currentTier,
-            dueLabel = formatCompactDue(word.nextPromptAt, now),
-            typeLabel = if (word.itemType == LearningItemType.VERB_CONJUGATION) {
-                "VERB · ${word.verbConjugation?.tense.orEmpty().uppercase()}"
-            } else {
-                null
-            },
-            onClick = onClick,
-            onDelete = onDelete,
-        )
-    }
+        onClick = onClick,
+        onDelete = onDelete,
+        modifier = modifier,
+    )
 }
 
 internal fun groupUpcomingWords(

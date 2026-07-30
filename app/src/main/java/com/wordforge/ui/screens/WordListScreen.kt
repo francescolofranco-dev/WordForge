@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.SaveAlt
@@ -67,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.wordforge.BuildConfig
 import com.wordforge.R
 import com.wordforge.data.LearningItemType
 import com.wordforge.data.ReminderFrequency
@@ -104,6 +106,7 @@ fun WordListScreen(
     val words by viewModel.allWords.collectAsStateWithLifecycle()
 
     var showDeleteAllDialog1 by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showReminderFrequencyDialog by remember { mutableStateOf(false) }
     var importPreview by remember { mutableStateOf<WordViewModel.ImportPreview?>(null) }
@@ -303,6 +306,17 @@ fun WordListScreen(
                                     }
                                 )
                             }
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                leadingIcon = {
+                                    Icon(Icons.Rounded.Info, contentDescription = null)
+                                },
+                                onClick = {
+                                    menuOpen = false
+                                    showAboutDialog = true
+                                }
+                            )
                         }
                     }
                 },
@@ -406,6 +420,10 @@ fun WordListScreen(
         )
     }
 
+    if (showAboutDialog) {
+        AboutDialog(onDismiss = { showAboutDialog = false })
+    }
+
     importPreview?.let { preview ->
         AlertDialog(
             onDismissRequest = { importPreview = null },
@@ -466,6 +484,32 @@ fun WordListScreen(
             onDismiss = { showReminderFrequencyDialog = false },
         )
     }
+}
+
+@Composable
+private fun AboutDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("About WordForge") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Turn new words into long-term memory through spaced repetition.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = "Version ${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Done")
+            }
+        },
+    )
 }
 
 @Composable

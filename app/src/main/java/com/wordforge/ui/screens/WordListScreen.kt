@@ -1,6 +1,9 @@
 package com.wordforge.ui.screens
 
+import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -68,7 +71,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.wordforge.BuildConfig
 import com.wordforge.R
 import com.wordforge.data.LearningItemType
 import com.wordforge.data.ReminderFrequency
@@ -87,6 +89,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,7 +161,7 @@ fun WordListScreen(
     LaunchedEffect(words) {
         while (true) {
             val untilNext = words.minOfOrNull { it.nextPromptAt - System.currentTimeMillis() }
-            delay(if (untilNext != null && untilNext <= 60 * 60 * 1000L) 1000L else 30_000L)
+            delay(if (untilNext != null && untilNext <= 60 * 60 * 1000L) 1.seconds else 30.seconds)
             now = System.currentTimeMillis()
         }
     }
@@ -488,6 +491,9 @@ fun WordListScreen(
 
 @Composable
 private fun AboutDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val versionName = remember(context) { context.appVersionName() }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("About WordForge") },
@@ -498,7 +504,7 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    text = "Version ${BuildConfig.VERSION_NAME}",
+                    text = "Version $versionName",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -510,6 +516,19 @@ private fun AboutDialog(onDismiss: () -> Unit) {
             }
         },
     )
+}
+
+private fun Context.appVersionName(): String {
+    val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        packageManager.getPackageInfo(
+            packageName,
+            PackageManager.PackageInfoFlags.of(0),
+        )
+    } else {
+        @Suppress("DEPRECATION")
+        packageManager.getPackageInfo(packageName, 0)
+    }
+    return packageInfo.versionName.orEmpty()
 }
 
 @Composable

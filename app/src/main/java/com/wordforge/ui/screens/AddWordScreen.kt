@@ -5,8 +5,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.wordforge.data.LearningItemDraft
 import com.wordforge.data.LearningItemType
@@ -21,24 +22,31 @@ fun AddWordScreen(
     onNotificationEducationShown: () -> Unit,
     onRequestNotificationPermission: () -> Unit,
 ) {
-    var showNotificationEducation by remember { mutableStateOf(false) }
+    var showNotificationEducation by rememberSaveable { mutableStateOf(false) }
+    var addedCount by rememberSaveable { mutableIntStateOf(0) }
 
-    LearningItemFormScaffold(
-        topBarLabel = "NEW ITEM",
-        headline = "What do you want to learn?",
-        subtitle = "Add a word or practise one complete Spanish verb tense.",
-        submitLabel = "Add to forge",
-        clearAfterSubmit = true,
-        successMessage = "Item added!",
-        autoFocus = true,
-        onNavigateBack = onNavigateBack,
+    fun finishAdding() {
+        if (shouldOfferNotifications && addedCount > 0) {
+            showNotificationEducation = true
+        } else {
+            onNavigateBack()
+        }
+    }
+
+    fun finishNotificationEducation(requestPermission: Boolean) {
+        showNotificationEducation = false
+        onNotificationEducationShown()
+        if (requestPermission) onRequestNotificationPermission()
+        onNavigateBack()
+    }
+
+    QuickAddItemForm(
+        onNavigateBack = ::finishAdding,
         onSubmit = { draft ->
             onAddItem(draft)
-            if (shouldOfferNotifications) {
-                onNotificationEducationShown()
-                showNotificationEducation = true
-            }
+            addedCount += 1
         },
+        existingItems = existingItems,
         itemWarning = { candidate ->
             val duplicate = existingItems.any { existing ->
                 existing.itemType == candidate.type &&
@@ -65,23 +73,22 @@ fun AddWordScreen(
 
     if (showNotificationEducation) {
         AlertDialog(
-            onDismissRequest = { showNotificationEducation = false },
+            onDismissRequest = { finishNotificationEducation(requestPermission = false) },
             title = { Text("Know when an item is ready") },
             text = {
                 Text("WordForge can send one grouped reminder for everything ready to review. You can choose how often from the app menu.")
             },
             confirmButton = {
                 TextButton(
-                    onClick = {
-                        showNotificationEducation = false
-                        onRequestNotificationPermission()
-                    }
+                    onClick = { finishNotificationEducation(requestPermission = true) }
                 ) {
                     Text("Allow reminders")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showNotificationEducation = false }) {
+                TextButton(
+                    onClick = { finishNotificationEducation(requestPermission = false) }
+                ) {
                     Text("Not now")
                 }
             },

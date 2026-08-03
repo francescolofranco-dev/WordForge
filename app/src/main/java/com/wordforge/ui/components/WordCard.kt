@@ -62,37 +62,20 @@ fun WordCard(
         ) {
             Row(
                 Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    TierIndicator(tier = tier)
-                    if (typeLabel != null) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                        ) {
-                            Text(
-                                text = typeLabel,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier
-                                    .widthIn(max = 132.dp)
-                                    .padding(horizontal = 9.dp, vertical = 5.dp),
-                            )
-                        }
-                    }
-                }
+                TierIndicator(
+                    tier = tier,
+                    modifier = Modifier.weight(1f),
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = dueLabel,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                     )
                     if (onDelete != null) {
                         Box {
@@ -118,11 +101,35 @@ fun WordCard(
                     }
                 }
             }
-            Text(
-                text = word,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = word,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                if (typeLabel != null) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                    ) {
+                        Text(
+                            text = typeLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .widthIn(max = 132.dp)
+                                .padding(horizontal = 9.dp, vertical = 5.dp),
+                        )
+                    }
+                }
+            }
             Text(
                 text = meaning,
                 style = MaterialTheme.typography.bodySmall,
@@ -134,16 +141,18 @@ fun WordCard(
     }
 }
 
-@Preview
+@Preview(name = "Narrow verb card", widthDp = 360, showBackground = true)
 @Composable
 private fun WordCardPreview() {
     WordForgeTheme {
         WordCard(
-            word = "petrichor",
-            meaning = "The pleasant earthy scent produced when rain falls on dry soil.",
-            tier = 3,
-            dueLabel = "2D 14H",
+            word = "tener",
+            meaning = "avere",
+            tier = 0,
+            dueLabel = "57m 53s",
+            typeLabel = "VERB · INDEFINIDO",
             onClick = {},
+            onDelete = {},
             modifier = Modifier.padding(16.dp),
         )
     }

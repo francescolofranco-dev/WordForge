@@ -289,7 +289,7 @@ fun LearningItemFormScaffold(
                 placeholder = if (selectedType == LearningItemType.VERB_CONJUGATION) {
                     "e.g. to say"
                 } else {
-                    "Define it in your own words for stronger recall."
+                    "e.g. a pleasant smell after rain"
                 },
                 isError = validationAttempted && meaning.isBlank(),
                 supportingText = if (validationAttempted && meaning.isBlank()) {
@@ -300,7 +300,6 @@ fun LearningItemFormScaffold(
                 minLines = if (selectedType == LearningItemType.SIMPLE_WORD) 5 else 1,
                 singleLine = selectedType == LearningItemType.VERB_CONJUGATION,
                 keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
                     imeAction = if (selectedType == LearningItemType.SIMPLE_WORD) {
                         ImeAction.Done
                     } else {
@@ -345,7 +344,6 @@ fun LearningItemFormScaffold(
                         else -> null
                     },
                     keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
                         imeAction = ImeAction.Next,
                     ),
                     modifier = Modifier.fillMaxWidth(),
@@ -582,7 +580,10 @@ private fun FormTextField(
         supportingText = supportingText?.let { text -> { Text(text) } },
         minLines = minLines,
         singleLine = singleLine,
-        keyboardOptions = keyboardOptions,
+        // Learning content follows dictionary-style lowercase across every field.
+        keyboardOptions = keyboardOptions.copy(
+            capitalization = KeyboardCapitalization.None,
+        ),
         keyboardActions = keyboardActions,
         modifier = modifier,
         shape = RoundedCornerShape(24.dp),

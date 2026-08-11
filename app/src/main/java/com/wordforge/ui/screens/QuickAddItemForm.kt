@@ -92,12 +92,12 @@ private enum class QuickAddFocus {
 }
 
 private val DefaultTenseSuggestions = listOf(
-    "Presente de indicativo",
-    "Pretérito perfecto simple",
-    "Pretérito imperfecto",
-    "Futuro simple",
-    "Condicional simple",
-    "Presente de subjuntivo",
+    "presente de indicativo",
+    "pretérito perfecto simple",
+    "pretérito imperfecto",
+    "futuro simple",
+    "condicional simple",
+    "presente de subjuntivo",
 )
 
 /**
@@ -647,7 +647,7 @@ fun QuickAddItemForm(
                     placeholder = if (selectedType == LearningItemType.VERB_CONJUGATION) {
                         "e.g. to say"
                     } else {
-                        "Define it in your own words"
+                        "e.g. a pleasant smell after rain"
                     },
                     isError = baseValidationAttempted && meaning.isBlank(),
                     supportingText = when {
@@ -658,7 +658,6 @@ fun QuickAddItemForm(
                     minLines = if (selectedType == LearningItemType.SIMPLE_WORD) 3 else 1,
                     singleLine = selectedType == LearningItemType.VERB_CONJUGATION,
                     keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
                         imeAction = if (selectedType == LearningItemType.SIMPLE_WORD) {
                             ImeAction.Done
                         } else {
@@ -721,7 +720,6 @@ fun QuickAddItemForm(
                             else -> null
                         },
                         keyboardOptions = KeyboardOptions(
-                            capitalization = KeyboardCapitalization.Sentences,
                             imeAction = ImeAction.Done,
                         ),
                         keyboardActions = KeyboardActions(onDone = { openConjugation() }),
@@ -1083,7 +1081,9 @@ private fun QuickTextField(
         supportingText = supportingText?.let { text -> { Text(text) } },
         minLines = minLines,
         singleLine = singleLine,
-        keyboardOptions = keyboardOptions,
+        keyboardOptions = keyboardOptions.copy(
+            capitalization = KeyboardCapitalization.None,
+        ),
         keyboardActions = keyboardActions,
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
@@ -1136,7 +1136,10 @@ private fun QuickConjugationRow(
             placeholder = { Text(placeholder) },
             singleLine = true,
             isError = showError,
-            keyboardOptions = KeyboardOptions(imeAction = imeAction),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.None,
+                imeAction = imeAction,
+            ),
             keyboardActions = if (imeAction == ImeAction.Done) {
                 KeyboardActions(onDone = { onNext() })
             } else {
@@ -1224,6 +1227,7 @@ internal fun suggestedVerbTenses(existingItems: List<Word>): List<String> {
         .filter { it.isNotBlank() }
         .toList()
     return (recent + DefaultTenseSuggestions)
+        .map { tense -> tense.replaceFirstChar { it.lowercase() } }
         .distinctBy { it.lowercase() }
         .take(6)
 }

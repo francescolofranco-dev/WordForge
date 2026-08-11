@@ -6,6 +6,7 @@ import com.wordforge.data.VerbConjugation
 import com.wordforge.data.Word
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QuickAddItemFormTest {
@@ -67,7 +68,7 @@ class QuickAddItemFormTest {
     }
 
     @Test
-    fun recentTensesComeBeforeDefaultsWithoutCaseInsensitiveDuplicates() {
+    fun tenseSuggestionsStartLowercaseAndAvoidCaseInsensitiveDuplicates() {
         val items = listOf(
             verbWord("hablar", "presente DE indicativo", createdAt = 200L),
             verbWord("decir", "Pretérito imperfecto", createdAt = 300L),
@@ -75,10 +76,11 @@ class QuickAddItemFormTest {
 
         val suggestions = suggestedVerbTenses(items)
 
-        assertEquals("Pretérito imperfecto", suggestions[0])
+        assertEquals("pretérito imperfecto", suggestions[0])
         assertEquals("presente DE indicativo", suggestions[1])
         assertEquals(1, suggestions.count { it.equals("Presente de indicativo", true) })
         assertEquals(6, suggestions.size)
+        assertTrue(suggestions.all { it.first().isLowerCase() })
     }
 
     @Test

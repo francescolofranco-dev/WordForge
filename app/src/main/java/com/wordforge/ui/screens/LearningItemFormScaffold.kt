@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.wordforge.data.LearningItemDraft
 import com.wordforge.data.LearningItemType
 import com.wordforge.data.VerbConjugation
+import com.wordforge.ui.components.VerbTenseDropdown
 import com.wordforge.ui.components.WordForgeSnackbarHost
 import kotlinx.coroutines.launch
 
@@ -96,6 +97,7 @@ fun LearningItemFormScaffold(
     }
     var validationAttempted by rememberSaveable { mutableStateOf(false) }
     var showDiscardDialog by rememberSaveable { mutableStateOf(false) }
+    var tenseMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     val currentVerb = VerbConjugation(
         tense = tense,
@@ -109,7 +111,7 @@ fun LearningItemFormScaffold(
     val currentDraft = LearningItemDraft(
         type = selectedType,
         term = term,
-        meaning = meaning,
+        meaning = if (selectedType == LearningItemType.SIMPLE_WORD) meaning else "",
         randomlyFlip = randomlyFlip,
         verbConjugation = if (selectedType == LearningItemType.VERB_CONJUGATION) {
             currentVerb
@@ -126,7 +128,7 @@ fun LearningItemFormScaffold(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val hasEnteredContent = term.isNotBlank() ||
-        meaning.isNotBlank() ||
+        (selectedType == LearningItemType.SIMPLE_WORD && meaning.isNotBlank()) ||
         tense.isNotBlank() ||
         yo.isNotBlank() ||
         tu.isNotBlank() ||
@@ -152,6 +154,7 @@ fun LearningItemFormScaffold(
         vosotros = ""
         ellosEllasUstedes = ""
         validationAttempted = false
+        tenseMenuExpanded = false
     }
 
     fun submitForm() {
@@ -165,6 +168,12 @@ fun LearningItemFormScaffold(
         if (successMessage != null) {
             scope.launch { snackbarHostState.showSnackbar(successMessage) }
         }
+    }
+
+    fun openTenseMenu() {
+        focusManager.clearFocus()
+        keyboardController?.hide()
+        tenseMenuExpanded = true
     }
 
     fun requestNavigateBack() {
@@ -233,7 +242,10 @@ fun LearningItemFormScaffold(
             if (allowTypeSelection) {
                 ItemTypeSelector(
                     selected = selectedType,
-                    onSelect = { selectedTypeName = it.name },
+                    onSelect = {
+                        selectedTypeName = it.name
+                        tenseMenuExpanded = false
+                    },
                 )
             } else {
                 FixedItemType(type = selectedType)
@@ -272,51 +284,42 @@ fun LearningItemFormScaffold(
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(
-                    onNext = { meaningFocusRequester.requestFocus() }
+                    onNext = {
+                        if (selectedType == LearningItemType.SIMPLE_WORD) {
+                            meaningFocusRequester.requestFocus()
+                        } else {
+                            openTenseMenu()
+                        }
+                    }
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(termFocusRequester),
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            FieldLabel("MEANING")
-            Spacer(modifier = Modifier.height(10.dp))
-            FormTextField(
-                value = meaning,
-                onValueChange = { meaning = it },
-                placeholder = if (selectedType == LearningItemType.VERB_CONJUGATION) {
-                    "e.g. to say"
-                } else {
-                    "e.g. a pleasant smell after rain"
-                },
-                isError = validationAttempted && meaning.isBlank(),
-                supportingText = if (validationAttempted && meaning.isBlank()) {
-                    "Add a meaning"
-                } else {
-                    null
-                },
-                minLines = if (selectedType == LearningItemType.SIMPLE_WORD) 5 else 1,
-                singleLine = selectedType == LearningItemType.VERB_CONJUGATION,
-                keyboardOptions = KeyboardOptions(
-                    imeAction = if (selectedType == LearningItemType.SIMPLE_WORD) {
-                        ImeAction.Done
-                    } else {
-                        ImeAction.Next
-                    },
-                ),
-                keyboardActions = if (selectedType == LearningItemType.SIMPLE_WORD) {
-                    KeyboardActions(onDone = { submitForm() })
-                } else {
-                    KeyboardActions.Default
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(meaningFocusRequester),
-            )
-
             if (selectedType == LearningItemType.SIMPLE_WORD) {
+                Spacer(modifier = Modifier.height(24.dp))
+                FieldLabel("MEANING")
+                Spacer(modifier = Modifier.height(10.dp))
+                FormTextField(
+                    value = meaning,
+                    onValueChange = { meaning = it },
+                    placeholder = "e.g. a pleasant smell after rain",
+                    isError = validationAttempted && meaning.isBlank(),
+                    supportingText = if (validationAttempted && meaning.isBlank()) {
+                        "Add a meaning"
+                    } else {
+                        null
+                    },
+                    minLines = 5,
+                    singleLine = false,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submitForm() }),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(meaningFocusRequester),
+                )
+
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "Tip — paraphrasing in your own words builds stronger memory than copy-pasting a definition.",
@@ -333,20 +336,20 @@ fun LearningItemFormScaffold(
                 Spacer(modifier = Modifier.height(24.dp))
                 FieldLabel("TENSE / MOOD")
                 Spacer(modifier = Modifier.height(10.dp))
-                FormTextField(
+                VerbTenseDropdown(
                     value = tense,
-                    onValueChange = { tense = it },
-                    placeholder = "e.g. presente de indicativo",
+                    expanded = tenseMenuExpanded,
+                    onExpandedChange = { tenseMenuExpanded = it },
+                    onTenseSelected = { tense = it },
                     isError = validationAttempted && tense.isBlank(),
                     supportingText = when {
                         validationAttempted && tense.isBlank() -> "Add the tense or mood"
                         duplicateWarning != null -> duplicateWarning
                         else -> null
                     },
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = ImeAction.Next,
-                    ),
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    testTag = "edit_verb_tense",
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))

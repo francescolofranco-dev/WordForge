@@ -4,7 +4,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +28,6 @@ import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -69,7 +67,7 @@ import androidx.compose.ui.unit.dp
 import com.wordforge.data.LearningItemDraft
 import com.wordforge.data.LearningItemType
 import com.wordforge.data.VerbConjugation
-import com.wordforge.data.Word
+import com.wordforge.ui.components.VerbTenseDropdown
 import com.wordforge.ui.components.WordForgeSnackbarHost
 import kotlinx.coroutines.launch
 
@@ -91,24 +89,14 @@ private enum class QuickAddFocus {
     ELLOS_ELLAS_USTEDES,
 }
 
-private val DefaultTenseSuggestions = listOf(
-    "presente de indicativo",
-    "pretérito perfecto simple",
-    "pretérito imperfecto",
-    "futuro simple",
-    "condicional simple",
-    "presente de subjuntivo",
-)
-
 /**
  * Add-only, keyboard-first intake flow. Editing deliberately keeps using the
- * complete form so all existing values remain visible together.
+ * complete type-specific form so every review field remains visible together.
  */
 @Composable
 fun QuickAddItemForm(
     onSubmit: (LearningItemDraft) -> Unit,
     onNavigateBack: () -> Unit,
-    existingItems: List<Word>,
     itemWarning: (LearningItemDraft) -> String? = { null },
 ) {
     var selectedTypeName by rememberSaveable {
@@ -120,10 +108,10 @@ fun QuickAddItemForm(
 
     var term by rememberSaveable { mutableStateOf("") }
     var meaning by rememberSaveable { mutableStateOf("") }
-    var meaningWasSuggested by rememberSaveable { mutableStateOf(false) }
     var randomlyFlip by rememberSaveable { mutableStateOf(true) }
     var tense by rememberSaveable { mutableStateOf("") }
     var baselineTense by rememberSaveable { mutableStateOf("") }
+    var tenseMenuExpanded by rememberSaveable { mutableStateOf(false) }
     var yo by rememberSaveable { mutableStateOf("") }
     var tu by rememberSaveable { mutableStateOf("") }
     var elEllaUsted by rememberSaveable { mutableStateOf("") }
@@ -187,9 +175,7 @@ fun QuickAddItemForm(
             target == QuickAddFocus.TERM || target == QuickAddFocus.MEANING
         }
         verbStage == VerbAddStage.BASICS -> {
-            target == QuickAddFocus.TERM ||
-                target == QuickAddFocus.MEANING ||
-                target == QuickAddFocus.TENSE
+            target == QuickAddFocus.TERM || target == QuickAddFocus.TENSE
         }
         target == QuickAddFocus.PASTE -> showPasteInput
         else -> target !in setOf(
@@ -250,7 +236,7 @@ fun QuickAddItemForm(
         return LearningItemDraft(
             type = type,
             term = term,
-            meaning = meaning,
+            meaning = if (type == LearningItemType.SIMPLE_WORD) meaning else "",
             randomlyFlip = randomlyFlip,
             verbConjugation = if (type == LearningItemType.VERB_CONJUGATION) {
                 currentVerbValue()
@@ -266,9 +252,6 @@ fun QuickAddItemForm(
     } else {
         itemWarning(currentDraft) ?: sessionDuplicateWarning(currentDraft, submittedThisSession)
     }
-    val tenseSuggestions = remember(existingItems) {
-        suggestedVerbTenses(existingItems)
-    }
     val hasVerbSpecificContent = yo.isNotBlank() ||
         tu.isNotBlank() ||
         elEllaUsted.isNotBlank() ||
@@ -277,46 +260,29 @@ fun QuickAddItemForm(
         ellosEllasUstedes.isNotBlank() ||
         pasteInput.isNotBlank()
     val hasUnsavedChanges = term.isNotBlank() ||
-        meaning.isNotBlank() ||
+        (selectedType == LearningItemType.SIMPLE_WORD && meaning.isNotBlank()) ||
         (selectedType == LearningItemType.VERB_CONJUGATION && hasVerbSpecificContent)
-
-    fun suggestKnownMeaning() {
-        if (
-            selectedType == LearningItemType.VERB_CONJUGATION &&
-            meaning.isBlank() &&
-            term.isNotBlank()
-        ) {
-            val suggestion = existingVerbMeaning(
-                term = term,
-                existingItems = existingItems,
-                submittedDrafts = submittedThisSession,
-            )
-            if (suggestion != null) {
-                meaning = suggestion
-                meaningWasSuggested = true
-            }
-        }
-    }
-
-    fun focusMeaning() {
-        suggestKnownMeaning()
-        requestFocus(QuickAddFocus.MEANING)
-    }
 
     fun firstMissingBaseFocus(): QuickAddFocus? = when {
         term.isBlank() -> QuickAddFocus.TERM
-        meaning.isBlank() -> QuickAddFocus.MEANING
         tense.isBlank() -> QuickAddFocus.TENSE
         else -> null
     }
 
+    fun openTenseMenu() {
+        focusTargetName = QuickAddFocus.TENSE.name
+        focusManager.clearFocus()
+        keyboardController?.hide()
+        tenseMenuExpanded = true
+    }
+
     fun openConjugation(selectedTense: String? = null) {
         if (selectedTense != null) tense = selectedTense
-        suggestKnownMeaning()
+        tenseMenuExpanded = false
         baseValidationAttempted = true
         val missing = firstMissingBaseFocus()
         if (missing != null) {
-            requestFocus(missing)
+            if (missing == QuickAddFocus.TENSE) openTenseMenu() else requestFocus(missing)
             return
         }
         verbStageName = VerbAddStage.CONJUGATION.name
@@ -384,7 +350,6 @@ fun QuickAddItemForm(
     fun resetAfterSubmit(draft: LearningItemDraft) {
         term = ""
         meaning = ""
-        meaningWasSuggested = false
         yo = ""
         tu = ""
         elEllaUsted = ""
@@ -393,6 +358,7 @@ fun QuickAddItemForm(
         ellosEllasUstedes = ""
         pasteInput = ""
         showPasteInput = false
+        tenseMenuExpanded = false
         pasteApplied = false
         pasteValidationAttempted = false
         baseValidationAttempted = false
@@ -458,7 +424,7 @@ fun QuickAddItemForm(
             verbStage == VerbAddStage.CONJUGATION
         ) {
             verbStageName = VerbAddStage.BASICS.name
-            requestFocus(QuickAddFocus.TENSE)
+            openTenseMenu()
         } else if (hasUnsavedChanges) {
             focusManager.clearFocus()
             keyboardController?.hide()
@@ -547,7 +513,7 @@ fun QuickAddItemForm(
                         "Use Next and Done on the keyboard. The next item starts automatically."
                     }
                     verbStage == VerbAddStage.BASICS -> {
-                        "Step 1 of 2 · Choose a recent tense to skip typing it."
+                        "Step 1 of 2 · Choose a supported tense from the list."
                     }
                     else -> {
                         "Step 2 of 2 · Use Next to move through every person."
@@ -576,9 +542,7 @@ fun QuickAddItemForm(
                     selected = selectedType,
                     onSelect = { type ->
                         selectedTypeName = type.name
-                        if (type != LearningItemType.VERB_CONJUGATION) {
-                            meaningWasSuggested = false
-                        }
+                        tenseMenuExpanded = false
                         verbStageName = VerbAddStage.BASICS.name
                         baseValidationAttempted = false
                         conjugationValidationAttempted = false
@@ -594,13 +558,7 @@ fun QuickAddItemForm(
             ) {
                 QuickTextField(
                     value = term,
-                    onValueChange = { value ->
-                        term = value
-                        if (meaningWasSuggested) {
-                            meaning = ""
-                            meaningWasSuggested = false
-                        }
-                    },
+                    onValueChange = { term = it },
                     label = if (selectedType == LearningItemType.VERB_CONJUGATION) {
                         "Infinitive"
                     } else {
@@ -625,7 +583,17 @@ fun QuickAddItemForm(
                         else -> null
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(onNext = { focusMeaning() }),
+                    keyboardActions = KeyboardActions(
+                        onNext = {
+                            if (selectedType == LearningItemType.SIMPLE_WORD) {
+                                requestFocus(QuickAddFocus.MEANING)
+                            } else if (tense.isBlank()) {
+                                openTenseMenu()
+                            } else {
+                                openConjugation()
+                            }
+                        }
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("quick_add_term")
@@ -635,58 +603,33 @@ fun QuickAddItemForm(
                         },
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                QuickTextField(
-                    value = meaning,
-                    onValueChange = {
-                        meaning = it
-                        meaningWasSuggested = false
-                    },
-                    label = "Meaning",
-                    placeholder = if (selectedType == LearningItemType.VERB_CONJUGATION) {
-                        "e.g. to say"
-                    } else {
-                        "e.g. a pleasant smell after rain"
-                    },
-                    isError = baseValidationAttempted && meaning.isBlank(),
-                    supportingText = when {
-                        baseValidationAttempted && meaning.isBlank() -> "Add a meaning"
-                        meaningWasSuggested -> "Reused from this verb in another tense"
-                        else -> null
-                    },
-                    minLines = if (selectedType == LearningItemType.SIMPLE_WORD) 3 else 1,
-                    singleLine = selectedType == LearningItemType.VERB_CONJUGATION,
-                    keyboardOptions = KeyboardOptions(
-                        imeAction = if (selectedType == LearningItemType.SIMPLE_WORD) {
-                            ImeAction.Done
-                        } else {
-                            ImeAction.Next
-                        },
-                    ),
-                    keyboardActions = if (selectedType == LearningItemType.SIMPLE_WORD) {
-                        KeyboardActions(onDone = { submitSimpleWord() })
-                    } else {
-                        KeyboardActions(
-                            onNext = {
-                                if (tense.isBlank()) {
-                                    requestFocus(QuickAddFocus.TENSE)
-                                } else {
-                                    openConjugation()
-                                }
-                            }
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("quick_add_meaning")
-                        .focusRequester(meaningFocusRequester)
-                        .onFocusChanged {
-                            if (it.isFocused) focusTargetName = QuickAddFocus.MEANING.name
-                        },
-                )
-
                 if (selectedType == LearningItemType.SIMPLE_WORD) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    QuickTextField(
+                        value = meaning,
+                        onValueChange = { meaning = it },
+                        label = "Meaning",
+                        placeholder = "e.g. a pleasant smell after rain",
+                        isError = baseValidationAttempted && meaning.isBlank(),
+                        supportingText = if (baseValidationAttempted && meaning.isBlank()) {
+                            "Add a meaning"
+                        } else {
+                            null
+                        },
+                        minLines = 3,
+                        singleLine = false,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { submitSimpleWord() }),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("quick_add_meaning")
+                            .focusRequester(meaningFocusRequester)
+                            .onFocusChanged {
+                                if (it.isFocused) {
+                                    focusTargetName = QuickAddFocus.MEANING.name
+                                }
+                            },
+                    )
                     Spacer(modifier = Modifier.height(16.dp))
                     QuickRandomlyFlipToggle(
                         checked = randomlyFlip,
@@ -705,11 +648,12 @@ fun QuickAddItemForm(
                     }
                 } else {
                     Spacer(modifier = Modifier.height(16.dp))
-                    QuickTextField(
+                    VerbTenseDropdown(
                         value = tense,
-                        onValueChange = { tense = it },
+                        expanded = tenseMenuExpanded,
+                        onExpandedChange = { tenseMenuExpanded = it },
+                        onTenseSelected = { openConjugation(it) },
                         label = "Tense or mood",
-                        placeholder = "e.g. presente de indicativo",
                         isError = baseValidationAttempted && tense.isBlank(),
                         supportingText = when {
                             baseValidationAttempted && tense.isBlank() -> "Add the tense or mood"
@@ -719,40 +663,14 @@ fun QuickAddItemForm(
                             }
                             else -> null
                         },
-                        keyboardOptions = KeyboardOptions(
-                            imeAction = ImeAction.Done,
-                        ),
-                        keyboardActions = KeyboardActions(onDone = { openConjugation() }),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("quick_add_tense")
                             .focusRequester(tenseFocusRequester)
                             .onFocusChanged {
                                 if (it.isFocused) focusTargetName = QuickAddFocus.TENSE.name
                             },
+                        testTag = "quick_add_tense",
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "RECENT & COMMON",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        tenseSuggestions.forEach { suggestion ->
-                            FilterChip(
-                                selected = tense.equals(suggestion, ignoreCase = true),
-                                onClick = { openConjugation(suggestion) },
-                                label = { Text(suggestion) },
-                            )
-                        }
-                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
                     Button(
@@ -1216,48 +1134,6 @@ internal fun conjugationParts(raw: String): List<String> {
         if (colonIndex > 0) trimmed.substring(colonIndex + 1).trim() else trimmed
     }
         .filter { it.isNotBlank() }
-}
-
-internal fun suggestedVerbTenses(existingItems: List<Word>): List<String> {
-    val recent = existingItems
-        .asSequence()
-        .filter { it.itemType == LearningItemType.VERB_CONJUGATION }
-        .sortedByDescending { it.createdAt }
-        .mapNotNull { it.verbConjugation?.tense?.trim() }
-        .filter { it.isNotBlank() }
-        .toList()
-    return (recent + DefaultTenseSuggestions)
-        .map { tense -> tense.replaceFirstChar { it.lowercase() } }
-        .distinctBy { it.lowercase() }
-        .take(6)
-}
-
-internal fun existingVerbMeaning(
-    term: String,
-    existingItems: List<Word>,
-    submittedDrafts: List<LearningItemDraft> = emptyList(),
-): String? {
-    val normalizedTerm = term.trim()
-    if (normalizedTerm.isBlank()) return null
-
-    val meanings = buildList {
-        existingItems
-            .asSequence()
-            .filter { it.itemType == LearningItemType.VERB_CONJUGATION }
-            .filter { it.word.trim().equals(normalizedTerm, ignoreCase = true) }
-            .map { it.meaning.trim() }
-            .filter { it.isNotBlank() }
-            .forEach(::add)
-        submittedDrafts
-            .asSequence()
-            .filter { it.type == LearningItemType.VERB_CONJUGATION }
-            .filter { it.term.trim().equals(normalizedTerm, ignoreCase = true) }
-            .map { it.meaning.trim() }
-            .filter { it.isNotBlank() }
-            .forEach(::add)
-    }.distinctBy { it.lowercase() }
-
-    return meanings.singleOrNull()
 }
 
 private fun firstMissingConjugationFocus(verb: VerbConjugation): QuickAddFocus? = when {

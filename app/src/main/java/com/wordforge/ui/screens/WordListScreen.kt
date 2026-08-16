@@ -85,6 +85,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -537,18 +538,26 @@ private fun UpcomingWordCard(
 ) {
     WordCard(
         word = word.word,
-        meaning = word.meaning,
+        meaning = listMeaning(word),
         tier = word.currentTier,
         dueLabel = formatCompactDue(word.nextPromptAt, now),
-        typeLabel = if (word.itemType == LearningItemType.VERB_CONJUGATION) {
-            "VERB · ${word.verbConjugation?.tense.orEmpty().uppercase()}"
-        } else {
-            null
-        },
+        typeLabel = listTypeLabel(word),
         onClick = onClick,
         onDelete = onDelete,
         modifier = modifier,
     )
+}
+
+internal fun listMeaning(word: Word): String? =
+    word.meaning.takeIf { word.itemType == LearningItemType.SIMPLE_WORD }
+
+internal fun listTypeLabel(word: Word): String? {
+    if (word.itemType != LearningItemType.VERB_CONJUGATION) return null
+    return word.verbConjugation
+        ?.tense
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.uppercase(Locale.ROOT)
 }
 
 internal fun groupUpcomingWords(

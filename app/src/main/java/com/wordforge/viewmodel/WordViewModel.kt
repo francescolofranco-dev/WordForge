@@ -115,7 +115,7 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Snapshot of every word as a pretty-printed JSON document.
-     * Round-trips with [importFromJson] — every persisted field is preserved.
+     * Round-trips with [importFromJson] — supported content and review state are preserved.
      */
     suspend fun exportToJson(): String {
         val words = repository.getAllOnce()
@@ -124,7 +124,10 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
             val o = JSONObject()
             o.put("id", w.id)
             o.put("word", w.word)
-            o.put("meaning", w.meaning)
+            o.put(
+                "meaning",
+                if (w.itemType == LearningItemType.SIMPLE_WORD) w.meaning else "",
+            )
             o.put("currentTier", w.currentTier)
             o.put("nextPromptAt", w.nextPromptAt)
             o.put("createdAt", w.createdAt)
@@ -208,7 +211,11 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
             val importedWord = Word(
                 id = o.getString("id"),
                 word = o.getString("word").trim(),
-                meaning = o.getString("meaning").trim(),
+                meaning = if (itemType == LearningItemType.SIMPLE_WORD) {
+                    o.getString("meaning").trim()
+                } else {
+                    ""
+                },
                 currentTier = o.getInt("currentTier"),
                 nextPromptAt = o.getLong("nextPromptAt"),
                 createdAt = o.getLong("createdAt"),
@@ -223,7 +230,10 @@ class WordViewModel(application: Application) : AndroidViewModel(application) {
             require(importedWord.id.isNotBlank()) { "Item ${i + 1} has no id" }
             require(seenIds.add(importedWord.id)) { "Duplicate item id at item ${i + 1}" }
             require(importedWord.word.isNotBlank()) { "Item ${i + 1} has empty text" }
-            require(importedWord.meaning.isNotBlank()) { "Item ${i + 1} has an empty meaning" }
+            require(
+                importedWord.itemType != LearningItemType.SIMPLE_WORD ||
+                    importedWord.meaning.isNotBlank()
+            ) { "Item ${i + 1} has an empty meaning" }
             require(importedWord.currentTier in 0..8) { "Item ${i + 1} has an invalid tier" }
             require(importedWord.nextPromptAt > 0L && importedWord.createdAt > 0L) {
                 "Item ${i + 1} has an invalid date"

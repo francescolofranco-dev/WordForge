@@ -46,7 +46,6 @@ fun AddWordScreen(
             onAddItem(draft)
             addedCount += 1
         },
-        existingItems = existingItems,
         itemWarning = { candidate ->
             val duplicate = existingItems.any { existing ->
                 existing.itemType == candidate.type &&

@@ -73,14 +73,14 @@ data class LearningItemDraft(
     val verbConjugation: VerbConjugation? = null,
 ) {
     val isComplete: Boolean
-        get() = term.isNotBlank() &&
-            meaning.isNotBlank() &&
-            (type != LearningItemType.VERB_CONJUGATION ||
-                verbConjugation?.isComplete == true)
+        get() = term.isNotBlank() && when (type) {
+            LearningItemType.SIMPLE_WORD -> meaning.isNotBlank()
+            LearningItemType.VERB_CONJUGATION -> verbConjugation?.isComplete == true
+        }
 
     fun normalized(): LearningItemDraft = copy(
         term = term.trim(),
-        meaning = meaning.trim(),
+        meaning = if (type == LearningItemType.SIMPLE_WORD) meaning.trim() else "",
         randomlyFlip = type == LearningItemType.SIMPLE_WORD && randomlyFlip,
         verbConjugation = if (type == LearningItemType.VERB_CONJUGATION) {
             verbConjugation?.normalized()
@@ -93,7 +93,7 @@ data class LearningItemDraft(
 fun Word.toDraft(): LearningItemDraft = LearningItemDraft(
     type = itemType,
     term = word,
-    meaning = meaning,
+    meaning = if (itemType == LearningItemType.SIMPLE_WORD) meaning else "",
     randomlyFlip = randomlyFlip,
     verbConjugation = verbConjugation,
 )

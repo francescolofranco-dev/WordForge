@@ -31,7 +31,6 @@ class QuickAddItemFormInstrumentedTest {
                 QuickAddItemForm(
                     onSubmit = { submitted = it },
                     onNavigateBack = {},
-                    existingItems = emptyList(),
                 )
             }
         }
@@ -58,19 +57,16 @@ class QuickAddItemFormInstrumentedTest {
                 QuickAddItemForm(
                     onSubmit = { submitted = it },
                     onNavigateBack = {},
-                    existingItems = emptyList(),
                 )
             }
         }
 
         composeRule.onNodeWithTag("quick_add_type_verb_conjugation").performClick()
+        composeRule.onNodeWithTag("quick_add_meaning").assertDoesNotExist()
         composeRule.onNodeWithTag("quick_add_term").performTextInput("decir")
         composeRule.onNodeWithTag("quick_add_term").performImeAction()
-        composeRule.onNodeWithTag("quick_add_meaning").performTextInput("to say")
-        composeRule.onNodeWithTag("quick_add_meaning").performImeAction()
-        composeRule.onNodeWithTag("quick_add_tense")
-            .performTextInput("Presente de indicativo")
-        composeRule.onNodeWithTag("quick_add_tense").performImeAction()
+        composeRule.onNodeWithTag("quick_add_tense").assertExists()
+        composeRule.onNodeWithTag("verb_tense_option_0").performClick()
 
         listOf(
             "YO conjugation" to "digo",
@@ -89,7 +85,8 @@ class QuickAddItemFormInstrumentedTest {
             assertNotNull(draft)
             assertEquals(LearningItemType.VERB_CONJUGATION, draft?.type)
             assertEquals("decir", draft?.term)
-            assertEquals("Presente de indicativo", draft?.verbConjugation?.tense)
+            assertEquals("", draft?.meaning)
+            assertEquals("presente de indicativo", draft?.verbConjugation?.tense)
             assertEquals(
                 listOf("digo", "dices", "dice", "decimos", "decís", "dicen"),
                 draft?.verbConjugation?.rows()?.map { it.form },

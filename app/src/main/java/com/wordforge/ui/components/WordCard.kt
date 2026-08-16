@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.DropdownMenu
@@ -27,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -36,7 +36,7 @@ import com.wordforge.ui.theme.WordForgeTheme
 @Composable
 fun WordCard(
     word: String,
-    meaning: String,
+    meaning: String?,
     tier: Int,
     dueLabel: String,
     onClick: () -> Unit,
@@ -101,42 +101,36 @@ fun WordCard(
                     }
                 }
             }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = word,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f),
-                )
-                if (typeLabel != null) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                    ) {
-                        Text(
-                            text = typeLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .widthIn(max = 132.dp)
-                                .padding(horizontal = 9.dp, vertical = 5.dp),
-                        )
-                    }
+            if (typeLabel != null) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.testTag("word_card_type_label"),
+                ) {
+                    Text(
+                        text = typeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                    )
                 }
             }
             Text(
-                text = meaning,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+                text = word,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.testTag("word_card_term"),
             )
+            if (!meaning.isNullOrBlank()) {
+                Text(
+                    text = meaning,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("word_card_meaning"),
+                )
+            }
         }
     }
 }
@@ -147,10 +141,10 @@ private fun WordCardPreview() {
     WordForgeTheme {
         WordCard(
             word = "tener",
-            meaning = "avere",
+            meaning = null,
             tier = 0,
             dueLabel = "57m 53s",
-            typeLabel = "VERB · INDEFINIDO",
+            typeLabel = "PRETÉRITO PERFECTO SIMPLE",
             onClick = {},
             onDelete = {},
             modifier = Modifier.padding(16.dp),

@@ -114,15 +114,6 @@ fun VerbConjugationQuizContent(
             textAlign = TextAlign.Center,
         )
 
-        Spacer(modifier = Modifier.height(5.dp))
-
-        Text(
-            text = word.meaning,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-
         Spacer(modifier = Modifier.height(10.dp))
 
         Surface(

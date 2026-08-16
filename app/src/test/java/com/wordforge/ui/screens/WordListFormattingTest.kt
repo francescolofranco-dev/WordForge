@@ -1,7 +1,10 @@
 package com.wordforge.ui.screens
 
+import com.wordforge.data.LearningItemType
+import com.wordforge.data.VerbConjugation
 import com.wordforge.data.Word
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Instant
 import java.time.ZoneId
@@ -31,6 +34,28 @@ class WordListFormattingTest {
         assertEquals(listOf("Later today", "Tomorrow", "This week", "Later"), grouped.keys.toList())
         assertEquals("today", grouped.getValue("Later today").single().word)
         assertEquals("tomorrow", grouped.getValue("Tomorrow").single().word)
+    }
+
+    @Test
+    fun verbLabelContainsOnlyTheFullTense() {
+        val verb = word("tener", "2026-07-20T18:00:00Z").copy(
+            meaning = "legacy meaning",
+            itemType = LearningItemType.VERB_CONJUGATION,
+            verbConjugation = VerbConjugation(
+                tense = "pretérito perfecto simple",
+                yo = "tuve",
+                tu = "tuviste",
+                elEllaUsted = "tuvo",
+                nosotros = "tuvimos",
+                vosotros = "tuvisteis",
+                ellosEllasUstedes = "tuvieron",
+            ),
+        )
+
+        assertEquals("PRETÉRITO PERFECTO SIMPLE", listTypeLabel(verb))
+        assertNull(listMeaning(verb))
+        assertNull(listTypeLabel(word("tiempo", "2026-07-20T18:00:00Z")))
+        assertEquals("meaning", listMeaning(word("tiempo", "2026-07-20T18:00:00Z")))
     }
 
     private fun word(text: String, due: String) = Word(

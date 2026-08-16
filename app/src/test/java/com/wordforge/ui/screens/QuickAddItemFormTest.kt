@@ -1,9 +1,6 @@
 package com.wordforge.ui.screens
 
-import com.wordforge.data.LearningItemDraft
-import com.wordforge.data.LearningItemType
-import com.wordforge.data.VerbConjugation
-import com.wordforge.data.Word
+import com.wordforge.data.SupportedVerbTenses
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -68,89 +65,18 @@ class QuickAddItemFormTest {
     }
 
     @Test
-    fun tenseSuggestionsStartLowercaseAndAvoidCaseInsensitiveDuplicates() {
-        val items = listOf(
-            verbWord("hablar", "presente DE indicativo", createdAt = 200L),
-            verbWord("decir", "Pretérito imperfecto", createdAt = 300L),
-        )
-
-        val suggestions = suggestedVerbTenses(items)
-
-        assertEquals("pretérito imperfecto", suggestions[0])
-        assertEquals("presente DE indicativo", suggestions[1])
-        assertEquals(1, suggestions.count { it.equals("Presente de indicativo", true) })
-        assertEquals(6, suggestions.size)
-        assertTrue(suggestions.all { it.first().isLowerCase() })
-    }
-
-    @Test
-    fun reusesMeaningOnlyWhenExistingMeaningsAgree() {
-        val existing = listOf(
-            verbWord(
-                term = " decir ",
-                tense = "Presente de indicativo",
-                createdAt = 100L,
-                meaning = " to say ",
-            ),
-            verbWord(
-                term = "DECIR",
-                tense = "Pretérito imperfecto",
-                createdAt = 200L,
-                meaning = "to say",
-            ),
-        )
-
-        assertEquals("to say", existingVerbMeaning("decir", existing))
-
-        val conflicting = existing + verbWord(
-            term = "decir",
-            tense = "Futuro simple",
-            createdAt = 300L,
-            meaning = "to tell",
-        )
-        assertNull(existingVerbMeaning("decir", conflicting))
-    }
-
-    @Test
-    fun meaningCanComeFromAnItemAddedInTheCurrentSession() {
-        val submitted = LearningItemDraft(
-            type = LearningItemType.VERB_CONJUGATION,
-            term = "decir",
-            meaning = "to say",
-            verbConjugation = completeConjugation("Presente de indicativo"),
-        )
-
+    fun supportedTensesAreFixedAndDictionaryStyleLowercase() {
         assertEquals(
-            "to say",
-            existingVerbMeaning(
-                term = "DECIR",
-                existingItems = emptyList(),
-                submittedDrafts = listOf(submitted),
+            listOf(
+                "presente de indicativo",
+                "pretérito perfecto simple",
+                "pretérito imperfecto",
+                "futuro simple",
+                "condicional simple",
+                "presente de subjuntivo",
             ),
+            SupportedVerbTenses,
         )
+        assertTrue(SupportedVerbTenses.all { it.first().isLowerCase() })
     }
-
-    private fun verbWord(
-        term: String,
-        tense: String,
-        createdAt: Long,
-        meaning: String = "meaning",
-    ) = Word(
-        word = term,
-        meaning = meaning,
-        nextPromptAt = createdAt + 1L,
-        createdAt = createdAt,
-        itemType = LearningItemType.VERB_CONJUGATION,
-        verbConjugation = completeConjugation(tense),
-    )
-
-    private fun completeConjugation(tense: String) = VerbConjugation(
-        tense = tense,
-        yo = "one",
-        tu = "two",
-        elEllaUsted = "three",
-        nosotros = "four",
-        vosotros = "five",
-        ellosEllasUstedes = "six",
-    )
 }

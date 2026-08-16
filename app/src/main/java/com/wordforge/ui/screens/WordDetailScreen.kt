@@ -260,7 +260,6 @@ fun WordDetailScreen(
                             LearningItemType.VERB_CONJUGATION -> {
                                 currentWord.verbConjugation?.let { conjugation ->
                                     VerbConjugationRevealCard(
-                                        meaning = currentWord.meaning,
                                         conjugation = conjugation,
                                         revealed = meaningRevealed,
                                         onToggle = { meaningRevealed = !meaningRevealed },
@@ -472,7 +471,7 @@ private fun VerbTypeBadge(tense: String) {
         color = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Text(
-            text = "VERB · ${tense.uppercase()}",
+            text = tense.uppercase(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
@@ -482,7 +481,6 @@ private fun VerbTypeBadge(tense: String) {
 
 @Composable
 private fun VerbConjugationRevealCard(
-    meaning: String,
     conjugation: VerbConjugation,
     revealed: Boolean,
     onToggle: () -> Unit,
@@ -521,7 +519,7 @@ private fun VerbConjugationRevealCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = if (revealed) {
-                            meaning
+                            "Conjugation"
                         } else {
                             "Tap to reveal conjugation"
                         },

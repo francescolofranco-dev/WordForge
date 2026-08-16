@@ -39,11 +39,11 @@ class LearningItemTest {
     }
 
     @Test
-    fun verbDraftRequiresEveryFormAndDisablesRandomFlip() {
+    fun verbDraftNeedsNoMeaningAndDropsLegacyMeaning() {
         val complete = LearningItemDraft(
             type = LearningItemType.VERB_CONJUGATION,
             term = " decir ",
-            meaning = " to say ",
+            meaning = "",
             randomlyFlip = true,
             verbConjugation = decir,
         )
@@ -51,8 +51,11 @@ class LearningItemTest {
         assertTrue(complete.isComplete)
         val normalized = complete.normalized()
         assertEquals("decir", normalized.term)
+        assertEquals("", normalized.meaning)
         assertEquals("Presente de indicativo", normalized.verbConjugation?.tense)
         assertFalse(normalized.randomlyFlip)
+
+        assertEquals("", complete.copy(meaning = " legacy meaning ").normalized().meaning)
 
         assertFalse(
             complete.copy(
@@ -62,16 +65,19 @@ class LearningItemTest {
     }
 
     @Test
-    fun simpleWordDropsUnusedVerbPayload() {
-        val normalized = LearningItemDraft(
+    fun simpleWordPreservesLowercaseAndDropsUnusedVerbPayload() {
+        val draft = LearningItemDraft(
             type = LearningItemType.SIMPLE_WORD,
-            term = " hola ",
-            meaning = " hello ",
+            term = " tiempo ",
+            meaning = " time ",
             verbConjugation = decir,
-        ).normalized()
+        )
+        val normalized = draft.normalized()
 
         assertTrue(normalized.isComplete)
-        assertEquals("hola", normalized.term)
+        assertFalse(draft.copy(meaning = "").isComplete)
+        assertEquals("tiempo", normalized.term)
+        assertEquals("time", normalized.meaning)
         assertNull(normalized.verbConjugation)
     }
 
@@ -99,5 +105,6 @@ class LearningItemTest {
         assertEquals(4, updated.currentTier)
         assertEquals(200L, updated.nextPromptAt)
         assertEquals(8, updated.totalCorrect)
+        assertEquals("", updated.meaning)
     }
 }
